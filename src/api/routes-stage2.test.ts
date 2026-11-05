@@ -1,3 +1,4 @@
+import { detailView } from './views';
 import { decodedPacketText } from '../evidence/test-text';
 import { afterEach, beforeEach, it, expect, vi } from 'vitest';
 import { CaseStore } from '../cases/storage';
@@ -26,8 +27,8 @@ beforeEach(() => {
 afterEach(() => { runtime.store.close(); vi.unstubAllEnvs(); });
 it('all public read responses and mutation responses omit buyer identity', async () => {
   const investigated = await run(request(), context()); expect(investigated.status).toBe(200); const data = await investigated.json();
-  const edited = await edit(request('PUT', { caseFile: draft('strong-delivery') }), context()); expect(edited.status).toBe(200); const v = await edited.json();
-  const approved = await approve(request('POST', { versionId: v.version.id }), context()); expect(approved.status).toBe(200); const a = await approved.json();
+  const edited = await edit(request('PUT', { caseFile: draft('strong-delivery'), baseVersionId: runtime.service.latest(d.dispute_id).id }), context()); expect(edited.status).toBe(200); const v = await edited.json();
+  const approved = await approve(request('POST', { versionId: v.version.id, snapshotFingerprint: detailView(runtime.store, d.dispute_id).snapshotFingerprint }), context()); expect(approved.status).toBe(200); const a = await approved.json();
   const sent = await submit(request('POST', { approvalId: a.approval.id }), context()); expect(sent.status).toBe(200);
   const responses = [data, v, a, await (await queue()).json(), await (await detail(request('GET'), context())).json(), await sent.json()];
   const text = JSON.stringify(responses); expect(text).not.toContain('buyer-sensitive'); expect(text).not.toContain('Buyer Sensitive Name'); expect(text).not.toContain('pdfBase64'); expect(text).not.toContain('test-code');
@@ -46,13 +47,13 @@ it('limits investigations per nearest proxy IP across requests', async () => {
 });
 it('returns new state when submission is refused', async () => {
   const { version } = await investigate(runtime.store, scripted('strong-delivery'), d.dispute_id);
-  const a = await runtime.service.approve(d.dispute_id, version!.id); runtime.service.edit(d.dispute_id, draft('strong-delivery'));
+  const a = await runtime.service.approve(d.dispute_id, version!.id, runtime.store.snapshotFingerprint(d.dispute_id)); runtime.service.edit(d.dispute_id, draft('strong-delivery'), runtime.service.latest(d.dispute_id).id);
   const result = await submit(request('POST', { approvalId: a.id }), context()); expect(result.status).toBe(409); expect((await result.json()).case.caseFileVersions).toHaveLength(2);
 });
 it('does not return private seller edits, including rejected versions', async () => {
   await investigate(runtime.store, scripted('strong-delivery'), d.dispute_id);
   const file = draft('strong-delivery'); file.summary = 'Buyer Sensitive Name';
-  const response = await edit(request('PUT', { caseFile: file }), context()); const output = await response.json(); expect(output.version.guard.accepted).toBe(false); expect(output.version.caseFile).toBeNull();
+  const response = await edit(request('PUT', { caseFile: file, baseVersionId: runtime.service.latest(d.dispute_id).id }), context()); const output = await response.json(); expect(output.version.guard.accepted).toBe(false); expect(output.version.caseFile).toBeNull();
   expect(await (await detail(request('GET'), context())).text()).not.toContain('Buyer Sensitive Name');
 });
 it('returns safe validation errors and missing cases', async () => {
@@ -69,7 +70,7 @@ it('rejects historical names and short buyer names in seller edits', async () =>
   await investigate(runtime.store, scripted('strong-delivery'), d.dispute_id);
   for (const name of ['Buyer Sensitive Name', 'Li']) {
     const file = draft('strong-delivery'); file.summary = name;
-    const response = await edit(request('PUT', { caseFile: file }), context()); const output = await response.json();
+    const response = await edit(request('PUT', { caseFile: file, baseVersionId: runtime.service.latest(d.dispute_id).id }), context()); const output = await response.json();
     expect(output.version.guard.accepted).toBe(false); expect(output.version.caseFile).toBeNull();
   }
 });
@@ -77,8 +78,8 @@ it('rejects historical names and short buyer names in seller edits', async () =>
 it('withholds a previously approved PDF when newly synced identity appears in its decoded text', async () => {
   const { version } = await investigate(runtime.store, scripted('strong-delivery'), d.dispute_id);
   const file = draft('strong-delivery'); file.summary = 'Previously unknown buyer marker';
-  const edited = runtime.service.edit(d.dispute_id, file);
-  await runtime.service.approve(d.dispute_id, edited.id);
+  const edited = runtime.service.edit(d.dispute_id, file, runtime.service.latest(d.dispute_id).id);
+  await runtime.service.approve(d.dispute_id, edited.id, runtime.store.snapshotFingerprint(d.dispute_id));
   const before = await pdf(request('GET'), context()); expect(before.status).toBe(200);
   const text = await decodedPacketText(new Uint8Array(await before.arrayBuffer()));
   expect(text).toContain('Previously unknown buyer marker'); expect(text).not.toContain('Buyer Sensitive Name');
@@ -90,7 +91,7 @@ it('withholds a previously approved PDF when newly synced identity appears in it
 });
 it('withholds the PDF if new identity matches a cited source rather than the model prose', async () => {
   const { version } = await investigate(runtime.store, scripted('strong-delivery'), d.dispute_id);
-  await runtime.service.approve(d.dispute_id, version!.id);
+  await runtime.service.approve(d.dispute_id, version!.id, runtime.store.snapshotFingerprint(d.dispute_id));
   const before = await decodedPacketText(runtime.service.preview(d.dispute_id));
   expect(before).toContain('DEMO CARRIER');
   runtime.store.save({ ...d, buyer: { name: 'DEMO CARRIER' } });
@@ -105,8 +106,42 @@ it('enforces the global daily cap despite client header rotation', async () => {
 it('rechecks private text after PDF accent normalization', async () => {
   await investigate(runtime.store, scripted('strong-delivery'), d.dispute_id);
   const file = draft('strong-delivery'); file.summary = 'Jose Marker';
-  const v = runtime.service.edit(d.dispute_id, file); await runtime.service.approve(d.dispute_id, v.id);
+  const v = runtime.service.edit(d.dispute_id, file, runtime.service.latest(d.dispute_id).id); await runtime.service.approve(d.dispute_id, v.id, runtime.store.snapshotFingerprint(d.dispute_id));
   expect(await decodedPacketText(runtime.service.preview(d.dispute_id))).toContain('Jose Marker');
   runtime.store.save({ ...d, buyer: { name: 'José Marker' } });
   expect((await pdf(request('GET'), context())).status).toBe(409);
+});
+it('keeps test states out of the normal demo queue, including its open balance', async () => {
+  runtime.store.save({ ...d, dispute_id: 'TEST-editable' });
+  vi.stubEnv('DATABASE_PATH', './data/counterclaim.db');
+  const demo = await (await queue()).json();
+  expect(demo.cases.map((r: { id: string }) => r.id)).toEqual([d.dispute_id]);
+  expect(demo.cases.reduce((sum: number, row: { amount: { value: string } }) => sum + Number(row.amount.value), 0)).toBe(120);
+  vi.stubEnv('DATABASE_PATH', './data/e2e.db');
+  expect((await (await queue()).json()).cases).toHaveLength(2);
+});
+
+it('requires the reviewed fingerprint and returns the changed snapshot on approval conflict', async () => {
+  const { version } = await investigate(runtime.store, scripted('strong-delivery'), d.dispute_id);
+  const reviewed = detailView(runtime.store, d.dispute_id);
+  expect((await approve(request('POST', { versionId: version!.id }), context())).status).toBe(400);
+  runtime.store.save({ ...d, dispute_life_cycle_stage: 'CHARGEBACK' });
+  const response = await approve(request('POST', { versionId: version!.id, snapshotFingerprint: reviewed.snapshotFingerprint }), context());
+  expect(response.status).toBe(409);
+  const body = await response.json();
+  expect(body.case.case.stage).toBe('CHARGEBACK');
+  expect(body.case.snapshotFingerprint).not.toBe(reviewed.snapshotFingerprint);
+  expect(runtime.store.approvals(d.dispute_id)).toEqual([]);
+  const retry = await approve(request('POST', { versionId: version!.id, snapshotFingerprint: body.case.snapshotFingerprint }), context());
+  expect(retry.status).toBe(200);
+});
+it('requires the base version and returns the first edit on a stale edit conflict', async () => {
+  const { version } = await investigate(runtime.store, scripted('strong-delivery'), d.dispute_id);
+  expect((await edit(request('PUT', { caseFile: draft('strong-delivery') }), context())).status).toBe(400);
+  const first = await edit(request('PUT', { caseFile: draft('strong-delivery'), baseVersionId: version!.id }), context());
+  expect(first.status).toBe(200);
+  const response = await edit(request('PUT', { caseFile: draft('strong-delivery'), baseVersionId: version!.id }), context());
+  expect(response.status).toBe(409);
+  expect((await response.json()).case.caseFileVersions.at(-1).id).toBe((await first.json()).version.id);
+  expect(runtime.store.versions(d.dispute_id)).toHaveLength(2);
 });

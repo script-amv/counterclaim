@@ -1,0 +1,324 @@
+{
+  "origin": "data/eval/2026-11-05T17-16-15.642Z/strong-delivery.json",
+  "label": "Recorded model run",
+  "caseFile": {
+    "summary": "The buyer says the demo desk lamp never arrived and opened an item not received dispute for $120.00. Carrier records show the parcel was delivered to the order address and the delivery was signed for. Recorded costs are $53.00, so a win keeps $67.00 and a loss means -$53.00.",
+    "timeline": [
+      {
+        "date": "2026-11-01T10:00:00Z",
+        "event": "The buyer ordered one demo desk lamp for $120.00.",
+        "citations": [
+          "strong-delivery-order-01",
+          "dispute.dispute_amount"
+        ]
+      },
+      {
+        "date": "2026-11-02T10:00:00Z",
+        "event": "The seller shipped the lamp with tracking through the demo carrier.",
+        "citations": [
+          "strong-delivery-shipment-01"
+        ]
+      },
+      {
+        "date": "2026-11-03T10:00:00Z",
+        "event": "The carrier recorded a signed delivery scan, and the shipping address matches the order.",
+        "citations": [
+          "strong-delivery-tracking_event-01",
+          "strong-delivery-shipment-01"
+        ]
+      },
+      {
+        "date": "2026-11-04T10:00:00Z",
+        "event": "The buyer messaged that the parcel had not arrived, and an initial dispute was opened the same day.",
+        "citations": [
+          "strong-delivery-customer_message-01",
+          "dispute.create_time"
+        ]
+      }
+    ],
+    "claims": [
+      {
+        "text": "The buyer disputes a $120.00 charge for an item not received.",
+        "citations": [
+          "dispute.dispute_amount",
+          "dispute.reason"
+        ]
+      },
+      {
+        "text": "The carrier recorded the parcel as delivered, and the delivery was signed for.",
+        "citations": [
+          "strong-delivery-shipment-01",
+          "strong-delivery-tracking_event-01"
+        ]
+      },
+      {
+        "text": "The shipping address matches the order.",
+        "citations": [
+          "strong-delivery-shipment-01",
+          "strong-delivery-tracking_event-01"
+        ]
+      },
+      {
+        "text": "Recorded item and shipping costs total $53.00, so a win keeps $67.00 and a loss means -$53.00.",
+        "citations": [
+          "strong-delivery-cost-01",
+          "dispute.dispute_amount"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "missing": "Verified PayPal Orders lookup unavailable",
+        "why_it_matters": "The PayPal order could not be verified. The seller records are demo evidence only."
+      }
+    ],
+    "recommendation": {
+      "action": "fight",
+      "reasoning": "Delivery, signature and address match are all supported by carrier records, so the seller has strong proof the item reached the buyer. A win keeps $67.00 after $53.00 in recorded costs, while a loss means -$53.00.",
+      "confidence": {
+        "level": "high",
+        "reason": "The shipment record and the tracking event agree that the parcel was delivered and signed for at the order address."
+      }
+    },
+    "evidence_draft": {
+      "seller_note": "The lamp was shipped with tracking. The carrier recorded a signed delivery to the order address. I am asking PayPal to review the delivery scan and signature confirmation.",
+      "attach_records": [
+        "strong-delivery-order-01",
+        "strong-delivery-shipment-01",
+        "strong-delivery-tracking_event-01",
+        "strong-delivery-cost-01"
+      ]
+    }
+  },
+  "run": {
+    "id": "17828c7d-c27e-475d-b5c3-c67d6c0779bb",
+    "disputeId": "DEMO-strong-delivery",
+    "model": "@preset/deepseek-mistral-vibe",
+    "status": "completed",
+    "startedAt": "2026-11-05T17:16:15.654Z",
+    "toolCalls": [
+      {
+        "tool": "get_dispute",
+        "arguments": {},
+        "result": "Read safe case facts"
+      },
+      {
+        "tool": "list_records",
+        "arguments": {},
+        "result": "Listed 6 demo records"
+      },
+      {
+        "tool": "read_record",
+        "arguments": {
+          "id": "strong-delivery-order-01"
+        },
+        "result": "Read demo seller record"
+      },
+      {
+        "tool": "read_record",
+        "arguments": {
+          "id": "strong-delivery-shipment-01"
+        },
+        "result": "Read demo seller record"
+      },
+      {
+        "tool": "read_record",
+        "arguments": {
+          "id": "strong-delivery-tracking_event-01"
+        },
+        "result": "Read demo seller record"
+      },
+      {
+        "tool": "read_record",
+        "arguments": {
+          "id": "strong-delivery-customer_message-01"
+        },
+        "result": "Read demo seller record"
+      },
+      {
+        "tool": "read_record",
+        "arguments": {
+          "id": "strong-delivery-policy-01"
+        },
+        "result": "Read demo seller record"
+      },
+      {
+        "tool": "read_record",
+        "arguments": {
+          "id": "strong-delivery-cost-01"
+        },
+        "result": "Read demo seller record"
+      },
+      {
+        "tool": "get_order",
+        "arguments": {},
+        "result": "Read safe case facts"
+      },
+      {
+        "tool": "read_record",
+        "arguments": {
+          "id": "strong-delivery-order-01"
+        },
+        "result": "Read demo seller record"
+      }
+    ],
+    "sources": [
+      {
+        "id": "dispute.dispute_id",
+        "data": "DEMO-strong-delivery"
+      },
+      {
+        "id": "dispute.status",
+        "data": "WAITING_FOR_SELLER_RESPONSE"
+      },
+      {
+        "id": "dispute.reason",
+        "data": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED"
+      },
+      {
+        "id": "dispute.dispute_life_cycle_stage",
+        "data": "INQUIRY"
+      },
+      {
+        "id": "dispute.create_time",
+        "data": "2026-11-04T10:00:00Z"
+      },
+      {
+        "id": "dispute.update_time",
+        "data": "2026-11-05T10:00:00Z"
+      },
+      {
+        "id": "dispute.seller_response_due_date",
+        "data": "2026-11-12T10:00:00Z"
+      },
+      {
+        "id": "dispute.dispute_amount",
+        "data": {
+          "currency_code": "USD",
+          "value": "120.00"
+        }
+      },
+      {
+        "id": "dispute.links",
+        "data": [
+          {
+            "rel": "provide_evidence",
+            "href": "sandbox-action",
+            "method": "POST"
+          },
+          {
+            "rel": "make_offer",
+            "href": "sandbox-action",
+            "method": "POST"
+          },
+          {
+            "rel": "accept_claim",
+            "href": "sandbox-action",
+            "method": "POST"
+          }
+        ]
+      },
+      {
+        "id": "strong-delivery-order-01",
+        "data": {
+          "id": "strong-delivery-order-01",
+          "type": "order",
+          "timestamp": "2026-11-01T10:00:00.000Z",
+          "source": "Sandbox demo seller store \u2014 synthetic data",
+          "content": {
+            "order_id": "DEMO-ORDER-strong-delivery",
+            "status": "COMPLETED",
+            "currency_code": "USD",
+            "amount": "120.00",
+            "item": "Demo desk lamp",
+            "quantity": 1,
+            "delivery_address_reference": "DEMO-ADDRESS-REFERENCE"
+          }
+        }
+      },
+      {
+        "id": "strong-delivery-shipment-01",
+        "data": {
+          "id": "strong-delivery-shipment-01",
+          "type": "shipment",
+          "timestamp": "2026-11-02T10:00:00.000Z",
+          "source": "Sandbox demo seller store \u2014 synthetic data",
+          "content": {
+            "tracking_number": "DEMO-TRACKING-strong-delivery",
+            "carrier_name": "DEMO CARRIER",
+            "address_matches": true,
+            "signed": true,
+            "status": "DELIVERED",
+            "proof": "Demo delivery scan and signature confirmation recorded for the order address."
+          }
+        }
+      },
+      {
+        "id": "strong-delivery-tracking_event-01",
+        "data": {
+          "id": "strong-delivery-tracking_event-01",
+          "type": "tracking_event",
+          "timestamp": "2026-11-03T10:00:00.000Z",
+          "source": "Sandbox demo seller store \u2014 synthetic data",
+          "content": {
+            "tracking_number": "DEMO-TRACKING-strong-delivery",
+            "status": "DELIVERED",
+            "detail": "Demo signed delivery scan; address reference matches order."
+          }
+        }
+      },
+      {
+        "id": "strong-delivery-customer_message-01",
+        "data": {
+          "id": "strong-delivery-customer_message-01",
+          "type": "customer_message",
+          "timestamp": "2026-11-04T10:00:00.000Z",
+          "source": "Sandbox demo seller store \u2014 synthetic data",
+          "content": {
+            "text": "The parcel has not arrived. Please check the delivery."
+          }
+        }
+      },
+      {
+        "id": "strong-delivery-policy-01",
+        "data": {
+          "id": "strong-delivery-policy-01",
+          "type": "policy",
+          "timestamp": "2026-11-01T10:00:00.000Z",
+          "source": "Sandbox demo seller store \u2014 synthetic data",
+          "content": {
+            "text": "Demo policy: investigate delivery issues using carrier scans. A seller may agree to a refund or settlement. This synthetic store policy does not establish PayPal eligibility or legal rights."
+          }
+        }
+      },
+      {
+        "id": "strong-delivery-cost-01",
+        "data": {
+          "id": "strong-delivery-cost-01",
+          "type": "cost",
+          "timestamp": "2026-11-01T10:00:00.000Z",
+          "source": "Sandbox demo seller store \u2014 synthetic data",
+          "content": {
+            "currency_code": "USD",
+            "item_cost": "45.00",
+            "shipping_cost": "8.00"
+          }
+        }
+      }
+    ],
+    "tokens": 19830,
+    "tokensEstimated": false,
+    "turns": 5,
+    "provider": "Mistral",
+    "providers": [
+      "Mistral"
+    ],
+    "cost": 0,
+    "endedAt": "2026-11-05T17:18:35.404Z"
+  },
+  "guard": {
+    "accepted": true,
+    "reasons": [],
+    "warnings": []
+  }
+}

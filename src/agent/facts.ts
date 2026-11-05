@@ -5,6 +5,7 @@ import { moneyFacts } from './money';
 
 export interface TrustedFacts {
   delivered: boolean | null; signed: boolean | null; addressMatches: boolean | null;
+  shipmentStatus: string | null; trackingStatus: string | null;
   trackingStalled: boolean | null; customerWillingToSettle: boolean;
   money: ReturnType<typeof moneyFacts>; dates: string[];
   gaps: CaseFile['gaps'];
@@ -12,8 +13,11 @@ export interface TrustedFacts {
 export function trustedFacts(dispute: Dispute, records: SellerRecord[], ordersAvailable = false): TrustedFacts {
   const shipments = records.filter(r => r.type === 'shipment');
   const shipment = shipments.length === 1 ? shipments[0]!.content : undefined;
+  const tracking = records.filter(r => r.type === 'tracking_event');
   const money = moneyFacts(dispute, records);
   const facts: TrustedFacts = {
+    shipmentStatus: typeof shipment?.status === 'string' ? shipment.status : null,
+    trackingStatus: tracking.length === 1 && typeof tracking[0]!.content.status === 'string' ? tracking[0]!.content.status : null,
     delivered: typeof shipment?.status === 'string' ? shipment.status === 'DELIVERED' : null,
     signed: typeof shipment?.signed === 'boolean' ? shipment.signed : null,
     addressMatches: typeof shipment?.address_matches === 'boolean' ? shipment.address_matches : null,
@@ -28,9 +32,20 @@ export function trustedFacts(dispute: Dispute, records: SellerRecord[], ordersAv
   if (facts.addressMatches !== true) gap('Matching shipment address', 'Delivery to the order address has not been established.');
   if (facts.trackingStalled) gap('Tracking stalled', 'Carrier tracking has not progressed.');
   for (const missing of money.gaps) gap(missing, 'Reliable money reasoning requires verified amounts.');
-  if (!ordersAvailable) gap('Verified PayPal Orders lookup unavailable', 'No verified Orders v2 ID is available; seller records are demo evidence only.');
+  if (!ordersAvailable) gap('Verified PayPal Orders lookup unavailable', 'The PayPal order could not be verified. The seller records are demo evidence only.');
   return facts;
 }
 export function mergeComputedGaps(file: CaseFile, facts: TrustedFacts): CaseFile {
-  return { ...file, gaps: [...facts.gaps, ...file.gaps.filter(g => !facts.gaps.some(f => f.missing === g.missing))] };
+  const seen = new Set<string>();
+  // Code-owned gaps come first. Only collapse normalized labels and the narrow
+  // order-verification topic; unrelated order details must remain visible.
+  const gaps = [...facts.gaps, ...file.gaps].filter(gap => {
+    const label = gap.missing.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const key = /\borders?\b/.test(label) && /\b(?:verified|verification|lookup)\b/.test(label)
+      ? 'order verification' : label;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return { ...file, gaps };
 }

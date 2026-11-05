@@ -1,0 +1,241 @@
+{
+  "origin": "data/eval/2026-11-05T17-11-38.258Z/strong-delivery.json",
+  "caseFile": {
+    "summary": "The buyer says the desk lamp never arrived and opened an initial dispute for $120.00. The seller's records show a signed delivery scan at the order address. If you win, you keep $67.00 after recorded costs; if you lose, your recorded costs leave you at -$53.00.",
+    "timeline": [
+      {
+        "date": "2026-11-01T10:00:00Z",
+        "event": "The order for one demo desk lamp was recorded at $120.00.",
+        "citations": [
+          "strong-delivery-order-01"
+        ]
+      },
+      {
+        "date": "2026-11-02T10:00:00Z",
+        "event": "The seller shipped the order with a demo carrier.",
+        "citations": [
+          "strong-delivery-shipment-01"
+        ]
+      },
+      {
+        "date": "2026-11-03T10:00:00Z",
+        "event": "A signed delivery scan was recorded, and the shipping address matches the order.",
+        "citations": [
+          "strong-delivery-tracking_event-01",
+          "strong-delivery-shipment-01"
+        ]
+      },
+      {
+        "date": "2026-11-04T10:00:00Z",
+        "event": "The buyer messaged that the parcel had not arrived, and an initial dispute for item not received was opened.",
+        "citations": [
+          "strong-delivery-customer_message-01",
+          "dispute.create_time",
+          "dispute.reason"
+        ]
+      }
+    ],
+    "claims": [
+      {
+        "text": "The buyer opened an initial dispute saying the item was not received, for $120.00.",
+        "citations": [
+          "dispute.reason",
+          "dispute.dispute_life_cycle_stage",
+          "dispute.dispute_amount"
+        ]
+      },
+      {
+        "text": "The seller's records show the parcel was delivered and the delivery was signed for.",
+        "citations": [
+          "strong-delivery-shipment-01",
+          "strong-delivery-tracking_event-01"
+        ]
+      },
+      {
+        "text": "The shipping address matches the order.",
+        "citations": [
+          "strong-delivery-shipment-01",
+          "strong-delivery-tracking_event-01"
+        ]
+      },
+      {
+        "text": "If you win, you keep $67.00 after recorded costs. If you lose, your recorded costs leave you at -$53.00.",
+        "citations": [
+          "dispute.dispute_amount",
+          "strong-delivery-cost-01"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "missing": "Verified PayPal Orders lookup unavailable",
+        "why_it_matters": "The PayPal order could not be verified. The seller records are demo evidence only."
+      },
+      {
+        "missing": "No record of the seller's reply to the buyer's message before the dispute was opened.",
+        "why_it_matters": "A reply sharing the delivery scan would show the seller tried to resolve the concern directly before the case."
+      }
+    ],
+    "recommendation": {
+      "action": "fight",
+      "reasoning": "Delivery, signature and address match are all supported by the seller's records, so the shipment evidence answers the non-receipt claim. Respond with that proof instead of paying.",
+      "confidence": {
+        "level": "high",
+        "reason": "The delivery scan, signature and address match all come from the seller's own records, and the only known gap is the missing PayPal order lookup."
+      }
+    },
+    "evidence_draft": {
+      "seller_note": "The buyer says the desk lamp did not arrive. Our records show the parcel was delivered to the order address and the delivery was signed for. We are attaching the order, shipment, tracking and cost records.",
+      "attach_records": [
+        "strong-delivery-order-01",
+        "strong-delivery-shipment-01",
+        "strong-delivery-tracking_event-01",
+        "strong-delivery-cost-01"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "dispute.dispute_id",
+      "data": "DEMO-strong-delivery"
+    },
+    {
+      "id": "dispute.status",
+      "data": "WAITING_FOR_SELLER_RESPONSE"
+    },
+    {
+      "id": "dispute.reason",
+      "data": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED"
+    },
+    {
+      "id": "dispute.dispute_life_cycle_stage",
+      "data": "INQUIRY"
+    },
+    {
+      "id": "dispute.create_time",
+      "data": "2026-11-04T10:00:00Z"
+    },
+    {
+      "id": "dispute.update_time",
+      "data": "2026-11-05T10:00:00Z"
+    },
+    {
+      "id": "dispute.seller_response_due_date",
+      "data": "2026-11-12T10:00:00Z"
+    },
+    {
+      "id": "dispute.dispute_amount",
+      "data": {
+        "currency_code": "USD",
+        "value": "120.00"
+      }
+    },
+    {
+      "id": "dispute.links",
+      "data": [
+        {
+          "rel": "provide_evidence",
+          "href": "sandbox-action",
+          "method": "POST"
+        },
+        {
+          "rel": "make_offer",
+          "href": "sandbox-action",
+          "method": "POST"
+        },
+        {
+          "rel": "accept_claim",
+          "href": "sandbox-action",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "id": "strong-delivery-order-01",
+      "data": {
+        "id": "strong-delivery-order-01",
+        "type": "order",
+        "timestamp": "2026-11-01T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "order_id": "DEMO-ORDER-strong-delivery",
+          "status": "COMPLETED",
+          "currency_code": "USD",
+          "amount": "120.00",
+          "item": "Demo desk lamp",
+          "quantity": 1,
+          "delivery_address_reference": "DEMO-ADDRESS-REFERENCE"
+        }
+      }
+    },
+    {
+      "id": "strong-delivery-shipment-01",
+      "data": {
+        "id": "strong-delivery-shipment-01",
+        "type": "shipment",
+        "timestamp": "2026-11-02T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "tracking_number": "DEMO-TRACKING-strong-delivery",
+          "carrier_name": "DEMO CARRIER",
+          "address_matches": true,
+          "signed": true,
+          "status": "DELIVERED",
+          "proof": "Demo delivery scan and signature confirmation recorded for the order address."
+        }
+      }
+    },
+    {
+      "id": "strong-delivery-tracking_event-01",
+      "data": {
+        "id": "strong-delivery-tracking_event-01",
+        "type": "tracking_event",
+        "timestamp": "2026-11-03T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "tracking_number": "DEMO-TRACKING-strong-delivery",
+          "status": "DELIVERED",
+          "detail": "Demo signed delivery scan; address reference matches order."
+        }
+      }
+    },
+    {
+      "id": "strong-delivery-customer_message-01",
+      "data": {
+        "id": "strong-delivery-customer_message-01",
+        "type": "customer_message",
+        "timestamp": "2026-11-04T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "text": "The parcel has not arrived. Please check the delivery."
+        }
+      }
+    },
+    {
+      "id": "strong-delivery-policy-01",
+      "data": {
+        "id": "strong-delivery-policy-01",
+        "type": "policy",
+        "timestamp": "2026-11-01T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "text": "Demo policy: investigate delivery issues using carrier scans. A seller may agree to a refund or settlement. This synthetic store policy does not establish PayPal eligibility or legal rights."
+        }
+      }
+    },
+    {
+      "id": "strong-delivery-cost-01",
+      "data": {
+        "id": "strong-delivery-cost-01",
+        "type": "cost",
+        "timestamp": "2026-11-01T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "currency_code": "USD",
+          "item_cost": "45.00",
+          "shipping_cost": "8.00"
+        }
+      }
+    }
+  ]
+}

@@ -14,3 +14,7 @@ data/
 .DS_Store
 spike/output/
 *.tsbuildinfo
+
+# Local browser verification artifacts
+test-results/
+playwright-report/

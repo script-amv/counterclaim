@@ -19,7 +19,7 @@ it('persists scenario assignment, run provenance, approval and unknown attempt a
     store = new CaseStore(path); expect(store.scenario(d.dispute_id)).toBe('low-value');
     const { version } = await investigate(store, scripted('low-value'), d.dispute_id);
     const paypal = { getDispute: async () => d, provideEvidence: async () => ({}), acceptClaim: async () => ({}), makeOffer: async () => { throw new Error('Transport failed'); } };
-    const service = new CaseService(store, paypal); const a = await service.approve(d.dispute_id, version!.id); await service.submit(d.dispute_id, a.id);
+    const service = new CaseService(store, paypal); const a = await service.approve(d.dispute_id, version!.id, store.snapshotFingerprint(d.dispute_id)); await service.submit(d.dispute_id, a.id);
     store.close(); store = new CaseStore(path);
     expect(store.runs(d.dispute_id)[0]!.toolCalls.length).toBeGreaterThan(0); expect(store.versions(d.dispute_id)[0]!.sources.length).toBeGreaterThan(0);
     expect(store.approvals(d.dispute_id)[0]!.contentHash).toBe(a.contentHash); expect(store.attempts(d.dispute_id)[0]!.status).toBe('unknown');

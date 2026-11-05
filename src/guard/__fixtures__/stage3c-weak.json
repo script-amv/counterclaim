@@ -1,0 +1,250 @@
+{
+  "origin": "data/eval/2026-11-05T17-19-47.646Z/weak-delivery.json",
+  "caseFile": {
+    "summary": "The buyer says the demo desk lamp never arrived. Tracking has stalled, delivery is not confirmed, and the shipment address does not match the order. No willingness to settle is recorded, so a refund is recommended.",
+    "timeline": [
+      {
+        "date": "2026-11-01T10:00:00Z",
+        "event": "The buyer ordered one demo desk lamp for $120.00.",
+        "citations": [
+          "weak-delivery-order-01",
+          "dispute.dispute_amount"
+        ]
+      },
+      {
+        "date": "2026-11-02T10:00:00Z",
+        "event": "The seller shipped the lamp, but the shipment address did not match the order address and no signature was recorded.",
+        "citations": [
+          "weak-delivery-shipment-01"
+        ]
+      },
+      {
+        "date": "2026-11-03T10:00:00Z",
+        "event": "Carrier tracking stalled and delivery was not confirmed.",
+        "citations": [
+          "weak-delivery-tracking_event-01"
+        ]
+      },
+      {
+        "date": "2026-11-04T10:00:00Z",
+        "event": "The buyer messaged that the parcel had not arrived and asked the seller to check the delivery.",
+        "citations": [
+          "weak-delivery-customer_message-01"
+        ]
+      }
+    ],
+    "claims": [
+      {
+        "text": "The order was for one demo desk lamp at $120.00.",
+        "citations": [
+          "weak-delivery-order-01",
+          "dispute.dispute_amount"
+        ]
+      },
+      {
+        "text": "Tracking has not advanced since the carrier accepted the parcel, and delivery is not confirmed.",
+        "citations": [
+          "weak-delivery-shipment-01",
+          "weak-delivery-tracking_event-01"
+        ]
+      },
+      {
+        "text": "The shipping address does not match the order, and no signature is recorded.",
+        "citations": [
+          "weak-delivery-shipment-01"
+        ]
+      },
+      {
+        "text": "Recorded costs are $45.00 for the item and $8.00 for shipping, $53.00 in total. A win would leave $67.00 after costs, while a loss would mean -$53.00.",
+        "citations": [
+          "weak-delivery-cost-01",
+          "dispute.dispute_amount"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "missing": "Confirmed delivery",
+        "why_it_matters": "Receipt has not been established."
+      },
+      {
+        "missing": "Signature confirmation",
+        "why_it_matters": "Signed receipt has not been established."
+      },
+      {
+        "missing": "Matching shipment address",
+        "why_it_matters": "Delivery to the order address has not been established."
+      },
+      {
+        "missing": "Tracking stalled",
+        "why_it_matters": "Carrier tracking has not progressed."
+      },
+      {
+        "missing": "Verified PayPal Orders lookup unavailable",
+        "why_it_matters": "The PayPal order could not be verified. The seller records are demo evidence only."
+      }
+    ],
+    "recommendation": {
+      "action": "refund",
+      "reasoning": "Delivery, signature and a matching address are all unsupported, and tracking has stalled. With no willingness to settle recorded, refunding the disputed amount is the safer path.",
+      "confidence": {
+        "level": "medium",
+        "reason": "The seller records consistently show no confirmed delivery, but they are demo seller records only."
+      }
+    },
+    "evidence_draft": {
+      "seller_note": "Tracking has not moved since the carrier accepted the parcel, and delivery is not confirmed. The shipment address does not match the order address and no signature was recorded. I am refunding the buyer.",
+      "attach_records": [
+        "weak-delivery-order-01",
+        "weak-delivery-shipment-01",
+        "weak-delivery-tracking_event-01",
+        "weak-delivery-customer_message-01",
+        "weak-delivery-cost-01"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "dispute.dispute_id",
+      "data": "DEMO-weak-delivery"
+    },
+    {
+      "id": "dispute.status",
+      "data": "WAITING_FOR_SELLER_RESPONSE"
+    },
+    {
+      "id": "dispute.reason",
+      "data": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED"
+    },
+    {
+      "id": "dispute.dispute_life_cycle_stage",
+      "data": "INQUIRY"
+    },
+    {
+      "id": "dispute.create_time",
+      "data": "2026-11-04T10:00:00Z"
+    },
+    {
+      "id": "dispute.update_time",
+      "data": "2026-11-05T10:00:00Z"
+    },
+    {
+      "id": "dispute.seller_response_due_date",
+      "data": "2026-11-12T10:00:00Z"
+    },
+    {
+      "id": "dispute.dispute_amount",
+      "data": {
+        "currency_code": "USD",
+        "value": "120.00"
+      }
+    },
+    {
+      "id": "dispute.links",
+      "data": [
+        {
+          "rel": "provide_evidence",
+          "href": "sandbox-action",
+          "method": "POST"
+        },
+        {
+          "rel": "make_offer",
+          "href": "sandbox-action",
+          "method": "POST"
+        },
+        {
+          "rel": "accept_claim",
+          "href": "sandbox-action",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "id": "weak-delivery-order-01",
+      "data": {
+        "id": "weak-delivery-order-01",
+        "type": "order",
+        "timestamp": "2026-11-01T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "order_id": "DEMO-ORDER-weak-delivery",
+          "status": "COMPLETED",
+          "currency_code": "USD",
+          "amount": "120.00",
+          "item": "Demo desk lamp",
+          "quantity": 1,
+          "delivery_address_reference": "DEMO-ADDRESS-REFERENCE"
+        }
+      }
+    },
+    {
+      "id": "weak-delivery-shipment-01",
+      "data": {
+        "id": "weak-delivery-shipment-01",
+        "type": "shipment",
+        "timestamp": "2026-11-02T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "tracking_number": "DEMO-TRACKING-weak-delivery",
+          "carrier_name": "DEMO CARRIER",
+          "address_matches": false,
+          "signed": false,
+          "status": "STALLED",
+          "proof": "Demo tracking has not advanced after carrier acceptance; shipment address reference differs from the order."
+        }
+      }
+    },
+    {
+      "id": "weak-delivery-tracking_event-01",
+      "data": {
+        "id": "weak-delivery-tracking_event-01",
+        "type": "tracking_event",
+        "timestamp": "2026-11-03T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "tracking_number": "DEMO-TRACKING-weak-delivery",
+          "status": "STALLED",
+          "detail": "Demo tracking stalled; delivery is not confirmed."
+        }
+      }
+    },
+    {
+      "id": "weak-delivery-customer_message-01",
+      "data": {
+        "id": "weak-delivery-customer_message-01",
+        "type": "customer_message",
+        "timestamp": "2026-11-04T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "text": "The parcel has not arrived. Please check the delivery."
+        }
+      }
+    },
+    {
+      "id": "weak-delivery-policy-01",
+      "data": {
+        "id": "weak-delivery-policy-01",
+        "type": "policy",
+        "timestamp": "2026-11-01T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "text": "Demo policy: investigate delivery issues using carrier scans. A seller may agree to a refund or settlement. This synthetic store policy does not establish PayPal eligibility or legal rights."
+        }
+      }
+    },
+    {
+      "id": "weak-delivery-cost-01",
+      "data": {
+        "id": "weak-delivery-cost-01",
+        "type": "cost",
+        "timestamp": "2026-11-01T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "currency_code": "USD",
+          "item_cost": "45.00",
+          "shipping_cost": "8.00"
+        }
+      }
+    }
+  ]
+}

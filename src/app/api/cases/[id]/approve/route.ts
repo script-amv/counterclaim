@@ -9,6 +9,6 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   let id: string;
   return handle(async () => {
     requireOperator(request); const input = await body(request, approveRequestSchema); id = (await context.params).id;
-    return json({ approval: approvalView(await getCaseService().approve(id, input.versionId)) } satisfies ApproveResponse);
+    return json({ approval: approvalView(await getCaseService().approve(id, input.versionId, input.snapshotFingerprint)) } satisfies ApproveResponse);
   }, () => detailView(getStore(), id));
 }

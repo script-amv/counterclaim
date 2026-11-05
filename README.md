@@ -1,6 +1,6 @@
-# Counterclaim — stage 2
+# Counterclaim — stage 3
 
-A sandbox-only seller dispute backend: PayPal sync, a sourced AI case file, deterministic guards, approval, PDF evidence and guarded actions. There is no seller UI in this stage. Every seeded seller record and generated packet is labelled sandbox demo data. The app does not promise wins.
+A sandbox-only seller dispute backend: PayPal sync, a sourced AI case file, deterministic guards, approval, PDF evidence and guarded actions. The seller interface includes an AG Grid queue, cited case files, a separate approval step and an honest explanation of the method. Every seeded seller record and generated packet is labelled sandbox demo data. The app does not promise wins.
 
 ## Run and verify
 
@@ -23,7 +23,7 @@ npm start -- --hostname 0.0.0.0 --port "$PORT"
 
 Mount a persistent disk at `/var/data` and set `DATABASE_PATH=/var/data/counterclaim.db`. The database and its WAL files must share that persistent directory. Use one application process and preserve the disk across deploys; `./data` is not persistent on an ephemeral host.
 
-The placeholder is at `/`. Builds use process environment only: `scripts/build-env.cjs` prevents Next from loading dotenv files during compilation. Tests disable external fetch and inject fake providers. Runtime clients initialize lazily. Next's development server retains its normal dotenv loading behavior; no development server or real provider call was run for stage 2.
+The case queue is at `/`, case files at `/cases/[id]`, approval at `/cases/[id]/approve`, and the method at `/how-it-works`. Builds use process environment only: `scripts/build-env.cjs` prevents Next from loading dotenv files during compilation. Tests disable external fetch and inject fake providers. Runtime clients initialize lazily. Next's development server retains its normal dotenv loading behavior; no development server or real provider call was run for stage 2.
 
 Configure runtime environment variables from `.env.example`:
 
@@ -33,6 +33,31 @@ Configure runtime environment variables from `.env.example`:
 - `OPERATOR_CODE`, a strong operator secret. Case mutations require `Authorization: Bearer <OPERATOR_CODE>` and fail closed with 503 when unset. Public case/PDF reads do not require this secret.
 
 Also set `CRON_SECRET` in the host environment. Schedule `GET /api/cron/sync` with `Authorization: Bearer <CRON_SECRET>`; unset means disabled (503). No scheduler is provisioned here. Verified PayPal webhooks reconcile `resource.dispute_id`; original JSON text is preserved inside the verification request. Supported events are `CUSTOMER.DISPUTE.CREATED`, `.UPDATED`, `.RESOLVED`.
+
+## Offline interface demo
+
+```sh
+npm run seed-demo
+npm run dev:offline
+```
+
+The offline launcher disables dotenv loading and blocks remote fetch. Seeding uses the local database only: four synthetic scenarios, authored case files checked by the real deterministic guard and strength calculation, plus eleven reconstructed snapshots of recorded case `PP-R-ZAT-10196609`. It is idempotent and never overwrites an existing case. Replay provenance persists in SQLite; writes are disabled in both UI and service, and polling/webhooks skip replay IDs before contacting PayPal. Replay analysis is authored offline, not attributed to a model run. Recorded trace provenance and reconstructed timestamps are disclosed in the case.
+
+Visitors can inspect records and approved PDFs. A session-only operator code unlocks write requests; the server checks it each time. Editing creates a new version and clears approval; unsaved changes disable approval and sending. PDF preview remains after approval and before sending, matching the existing byte-bound approval contract. Unknown submissions stay locked.
+
+Fraunces and DM Sans are bundled via `next/font/local`; SIL Open Font License notices are in `src/app/fonts/`. AG Grid Community uses its theming API; its status totals are a custom Community-compatible footer, separated by currency. Sort preferences persist in local browser storage.
+
+## Browser verification
+
+```sh
+npx playwright install chromium
+npm run build
+npm run e2e
+```
+
+Playwright recreates only `data/e2e.db` and its WAL files, seeds replays plus clearly named `TEST-*` fixtures, starts the production app with dotenv loading disabled and remote fetch blocked, and uses a public local-test operator code. It never contacts PayPal or OpenRouter. Request tests verify real guard, replay enforcement, visitor access and privacy. Browser tests verify sort persistence, source selection, rejected approval, editing/version binding and privacy. Screenshots cover routes and key states at 1440 and 390, saved to ignored `data/ui-shots/`. The test database is isolated from `data/counterclaim.db`.
+
+Browser launch requires an environment that permits Chromium's macOS Mach services. If launch is denied, request tests can still run with `npm run e2e -- e2e/api.spec.ts`; screenshot and visual QA remain unverified until the browser suite runs.
 
 ## Demo records and investigation
 
@@ -62,7 +87,7 @@ Use only the authorized wrapper for the current live evaluation; these options d
 
 This evaluates synthetic disputes in an in-memory database and never calls PayPal. It prints provider, failure code, guard reasons and warnings, turn count, recommendation, tokens, cost and injection repetition status. The harness stops further requests on missing/non-Mistral provider or nonzero/missing cost, or provider refusal; it never chooses a fallback route. Stage 2b used the explicitly authorized launcher once: Mistral, cost 0, then `provider_refused` at turn 3 before a case file. Stage 2c reached one full passing run (run 14); run 15 rejected injection on a source-scoped negation false positive, fixed afterward with a regression test. The 15-run cap was reached, so the required two consecutive full live passes were not achieved. Full demo captures are in ignored `data/eval/`. Scripts use the installed TypeScript compiler through a local Node loader; they do not download a runner or load dotenv files.
 
-## API for the later UI
+## Public UI API
 
 Shared request/response types and validation schemas are in [`src/api/contract.ts`](src/api/contract.ts). All JSON responses use `Cache-Control: no-store`.
 

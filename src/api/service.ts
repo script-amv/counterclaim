@@ -22,16 +22,22 @@ export class CaseService {
   constructor(readonly store: CaseStore, private paypal: ActionClient) {}
   latest(id: string): CaseFileVersion { const v = this.store.versions(id).at(-1); if (!v) throw new ApiError(409, 'Investigate or create a case file first'); return v; }
   private facts(id: string) { return trustedFacts(this.store.get(id)!, recordsForScenario(this.store.scenario(id))); }
-  edit(id: string, input: unknown) {
-    this.store.assertMutable(id);
-    const original = this.latest(id); const facts = this.facts(id); const caseFile = mergeComputedGaps(caseFileSchema.parse(input), facts);
-    const guard = checkCaseFile(caseFile, original.sources, [...casePrivateValues(this.store, id), SYSTEM_PROMPT], this.facts(id));
-    const version: CaseFileVersion = { ...original, id: randomUUID(), createdAt: new Date().toISOString(), caseFile, guard };
-    this.store.addVersion(version); return version;
+  edit(id: string, input: unknown, baseVersionId: string) {
+    return this.store.transaction(() => {
+      this.store.assertMutable(id);
+      const original = this.latest(id);
+      if (original.id !== baseVersionId) throw new ApiError(409, 'Another edit came first. Your draft has been kept. Review the latest version before saving again.');
+      const facts = this.facts(id); const caseFile = mergeComputedGaps(caseFileSchema.parse(input), facts);
+      const guard = checkCaseFile(caseFile, original.sources, [...casePrivateValues(this.store, id), SYSTEM_PROMPT], this.facts(id));
+      const version: CaseFileVersion = { ...original, id: randomUUID(), createdAt: new Date().toISOString(), caseFile, guard };
+      this.store.addVersion(version); return version;
+    });
   }
-  async approve(id: string, versionId: string): Promise<Approval> {
+  async approve(id: string, versionId: string, snapshotFingerprint: string): Promise<Approval> {
+    this.store.assertNotReplay(id);
     const v = this.latest(id); const dispute = this.store.get(id);
     if (!dispute || v.id !== versionId) throw new ApiError(409, 'Case file version changed');
+    if (this.store.snapshotFingerprint(id) !== snapshotFingerprint) throw new ApiError(409, 'Case state changed. Review the updated state and approve again.');
     const guard = checkCaseFile(v.caseFile, v.sources, [...casePrivateValues(this.store, id), SYSTEM_PROMPT], this.facts(id));
     if (packetContainsPrivateText(v.caseFile, v.sources, casePrivateValues(this.store, id)) || !v.guard.accepted || !guard.accepted) throw new ApiError(409, 'Case file was rejected');
     const r = v.caseFile.recommendation;
@@ -42,13 +48,18 @@ export class CaseService {
       const file = new File([new Uint8Array(pdf)], filename, { type: 'application/pdf' }); validateEvidenceFile(file);
       content.evidence = { filename, pdfBase64: Buffer.from(pdf).toString('base64'), input: evidenceInput(dispute.reason, v.caseFile, v.sources, filename) };
     }
-    // No await between final latest-version check and persistence.
-    if (this.latest(id).id !== versionId) throw new ApiError(409, 'Case file version changed');
-    if (packetContainsPrivateText(v.caseFile, v.sources, casePrivateValues(this.store, id))) throw new ApiError(409, 'Packet requires privacy review');
-    const approval = { id: randomUUID(), disputeId: id, versionId, contentHash: contentHash(content), createdAt: new Date().toISOString(), content };
-    this.store.addApproval(approval); return approval;
+    // Recheck under the write lock after asynchronous packet generation.
+    return this.store.transaction(() => {
+      this.store.assertNotReplay(id);
+      if (this.store.snapshotFingerprint(id) !== snapshotFingerprint) throw new ApiError(409, 'Case state changed. Review the updated state and approve again.');
+      if (this.latest(id).id !== versionId) throw new ApiError(409, 'Case file version changed');
+      if (packetContainsPrivateText(v.caseFile, v.sources, casePrivateValues(this.store, id))) throw new ApiError(409, 'Packet requires privacy review');
+      const approval = { id: randomUUID(), disputeId: id, versionId, contentHash: contentHash(content), createdAt: new Date().toISOString(), content };
+      this.store.addApproval(approval); return approval;
+    });
   }
   async submit(id: string, approvalId: string): Promise<SubmissionAttempt> {
+    this.store.assertNotReplay(id);
     const approval = this.store.approvals(id).find(a => a.id === approvalId);
     if (!approval) throw new ApiError(409, 'Approval is required');
     const fresh = await this.paypal.getDispute(id);

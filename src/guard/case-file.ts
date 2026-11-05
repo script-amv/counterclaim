@@ -71,8 +71,12 @@ export function checkCaseFile(file: CaseFile, sources: ReadSource[], forbidden: 
   if (file.recommendation.action === 'fight' && (facts.trackingStalled || facts.addressMatches === false || facts.delivered !== true)) warnings.push('Advice to fight conflicts with computed delivery evidence');
   return { accepted: reasons.length === 0, reasons: [...new Set(reasons)], warnings };
 }
-export function evidenceStrength(guard: GuardResult | undefined, facts: TrustedFacts): 'unreviewed' | 'rejected' | 'limited' | 'supported' {
-  return !guard ? 'unreviewed' : !guard.accepted ? 'rejected' : facts.gaps.length ? 'limited' : 'supported';
+export function evidenceStrength(guard: GuardResult | undefined, facts: TrustedFacts): 'unreviewed' | 'rejected' | 'weak' | 'partial' | 'strong' {
+  if (!guard) return 'unreviewed';
+  if (!guard.accepted) return 'rejected';
+  if (facts.trackingStalled || facts.addressMatches === false) return 'weak';
+  if (facts.delivered === true && facts.signed === true && facts.addressMatches === true) return 'strong';
+  return facts.delivered === true || facts.addressMatches === true ? 'partial' : 'weak';
 }
 
 function inferredFacts(sources: ReadSource[]): TrustedFacts {
@@ -86,8 +90,11 @@ function factualContradictions(text: string, facts: TrustedFacts): string[] {
   // Resolve coordinated absence before comma splitting, preserving its scope to named predicates.
   const absentPredicate = '(?:a )?signed receipt|stalled tracking|tracking stall|address mismatch|signature(?: confirmation)?|(?:confirmed )?delivery(?: confirmation| to the order address)?|matching[- ](?:(?:shipment|delivery|order) )?address(?: (?:proof|evidence))?';
   const absenceList = new RegExp(`\\b(?:no|neither|absence of|lack of|without|cannot (?:evidence|confirm|establish|prove)|missing|lacks?)\\s+(?:${absentPredicate})(?:,\\s*(?:${absentPredicate}))*\\s*,?\\s+(?:or|and|nor)\\s+(?:${absentPredicate})\\b`, 'gi');
-  const scoped = text.replace(/\b(?:delivery|signature|address match)(?:,\s*|\s+and\s+)(?:signature|address match)(?:\s+and\s+address match)?\s+are\s+(?:all\s+)?(?:unestablished|unconfirmed|unproven|unsupported|not established)\b/gi,
-    group => ['delivery', 'signature', 'address match'].filter(predicate => group.toLowerCase().includes(predicate)).map(predicate => `no ${predicate}`).join('; '))
+  const scoped = text.replace(/\b(?:delivery|signature|address match|(?:a )?matching address)(?:,\s*|\s+and\s+)(?:signature|address match|(?:a )?matching address)(?:\s+and\s+(?:address match|(?:a )?matching address))?\s+are\s+(?:all\s+)?(?:unestablished|unconfirmed|unproven|unsupported|not established)\b/gi,
+    group => {
+      const predicates = group.toLowerCase().replace(/\b(?:a )?matching address\b/g, 'address match');
+      return ['delivery', 'signature', 'address match'].filter(predicate => predicates.includes(predicate)).map(predicate => `no ${predicate}`).join('; ');
+    })
     .replace(absenceList, group => (group.match(new RegExp(absentPredicate, 'gi')) ?? []).map(predicate => `no ${predicate}`).join('; '));
   for (const clause of scoped.split(/[.!?;,\n]|\bbut\b/i)) {
     const normalized = clause.toLowerCase().replaceAll('_', ' ').replace(/\bnon[- ]matching\b/g, 'not matching')

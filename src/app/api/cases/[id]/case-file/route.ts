@@ -10,6 +10,6 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   let id: string;
   return handle(async () => {
     requireOperator(request); const input = await body(request, editCaseFileRequestSchema); id = (await context.params).id;
-    return json({ version: versionView(getCaseService().edit(id, input.caseFile), casePrivateValues(getStore(), id)) } satisfies EditCaseFileResponse);
+    return json({ version: versionView(getCaseService().edit(id, input.caseFile, input.baseVersionId), casePrivateValues(getStore(), id)) } satisfies EditCaseFileResponse);
   }, () => detailView(getStore(), id));
 }

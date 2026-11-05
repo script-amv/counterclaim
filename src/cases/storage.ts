@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -6,6 +7,7 @@ import { scenarioIds, type ScenarioId } from '../records';
 import type { AgentRun, CaseFileVersion, Approval, SubmissionAttempt } from '../agent/schema';
 
 export class PendingSubmissionError extends Error {}
+export class ReplayCaseError extends Error {}
 const migrations = [
   `CREATE TABLE cases (
      dispute_id TEXT PRIMARY KEY,
@@ -39,6 +41,7 @@ const migrations = [
    CREATE TRIGGER block_pending_run BEFORE INSERT ON agent_runs
    WHEN EXISTS (SELECT 1 FROM submission_attempts WHERE dispute_id=NEW.dispute_id AND status IN ('submitting','unknown'))
    BEGIN SELECT RAISE(ABORT, 'Submission is pending'); END;`,
+  `CREATE TABLE replay_cases (dispute_id TEXT PRIMARY KEY REFERENCES cases(dispute_id));`,
 ];
 
 // Object property order and HATEOAS link order have no business meaning.
@@ -73,6 +76,18 @@ export class CaseStore {
       this.db.exec('COMMIT');
     } catch (error) { this.db.exec('ROLLBACK'); this.db.close(); throw error; }
   }
+  /** Synchronous writes hold the same lock across validation and persistence. */
+  transaction<T>(work: () => T): T {
+    if (this.db.isTransaction) return work();
+    this.db.exec('BEGIN IMMEDIATE');
+    try { const result = work(); this.db.exec('COMMIT'); return result; }
+    catch (error) { this.db.exec('ROLLBACK'); throw error; }
+  }
+  snapshotFingerprint(id: string): string {
+    const row = this.db.prepare('SELECT fingerprint FROM cases WHERE dispute_id=?').get(id);
+    if (!row) throw new Error('Case not found');
+    return createHash('sha256').update(String(row.fingerprint)).digest('hex');
+  }
   get(id: string): Dispute | undefined {
     const row = this.db.prepare('SELECT snapshot FROM cases WHERE dispute_id = ?').get(id);
     return row ? disputeSchema.parse(JSON.parse(String(row.snapshot))) : undefined;
@@ -83,8 +98,7 @@ export class CaseStore {
     const snapshot = JSON.stringify(dispute);
     const fingerprint = JSON.stringify(canonical(dispute));
     const now = new Date().toISOString();
-    this.db.exec('BEGIN IMMEDIATE');
-    try {
+    return this.transaction(() => {
       const old = this.db.prepare('SELECT fingerprint FROM cases WHERE dispute_id = ?').get(dispute.dispute_id);
       const changed = old?.fingerprint !== fingerprint;
       this.db.prepare(`INSERT INTO cases (dispute_id, snapshot, fingerprint, synced_at) VALUES (?, ?, ?, ?)
@@ -92,9 +106,8 @@ export class CaseStore {
         .run(dispute.dispute_id, snapshot, fingerprint, now);
       if (changed) this.db.prepare("INSERT INTO case_events (dispute_id, kind, snapshot, observed_at) VALUES (?, 'snapshot_changed', ?, ?)")
         .run(dispute.dispute_id, snapshot, now);
-      this.db.exec('COMMIT');
       return changed;
-    } catch (error) { this.db.exec('ROLLBACK'); throw error; }
+    });
   }
   history(id: string): CaseEvent[] {
     return this.db.prepare('SELECT * FROM case_events WHERE dispute_id = ? ORDER BY id').all(id).map(row => ({
@@ -116,10 +129,21 @@ export class CaseStore {
   }
   runs(id: string): AgentRun[] { return this.db.prepare('SELECT data FROM agent_runs WHERE dispute_id=? ORDER BY rowid').all(id).map(r => JSON.parse(String(r.data))); }
   addVersion(v: CaseFileVersion) { this.assertMutable(v.disputeId); this.db.prepare('INSERT INTO case_file_versions VALUES (?, ?, ?)').run(v.id, v.disputeId, JSON.stringify(v)); }
+  /** Offline seed upgrades only: preserve old versions and never unlock a replay for API writes. */
+  importReplayVersion(v: CaseFileVersion) {
+    if (!this.isReplay(v.disputeId) || !v.guard.accepted || this.approvals(v.disputeId).length || this.attempts(v.disputeId).length)
+      throw new Error('Only accepted, untouched replay fixtures may be imported');
+    this.db.prepare('INSERT INTO case_file_versions VALUES (?, ?, ?)').run(v.id, v.disputeId, JSON.stringify(v));
+  }
   versions(id: string): CaseFileVersion[] { return this.db.prepare('SELECT data FROM case_file_versions WHERE dispute_id=? ORDER BY rowid').all(id).map(r => JSON.parse(String(r.data))); }
   addApproval(a: Approval) { this.db.prepare('INSERT INTO approvals VALUES (?, ?, ?)').run(a.id, a.disputeId, JSON.stringify(a)); }
   approvals(id: string): Approval[] { return this.db.prepare('SELECT data FROM approvals WHERE dispute_id=? ORDER BY rowid').all(id).map(r => JSON.parse(String(r.data))); }
+  lastSyncedAt(id: string): string | undefined { return this.db.prepare('SELECT synced_at FROM cases WHERE dispute_id=?').get(id)?.synced_at as string | undefined; }
+  markReplay(id: string) { this.db.prepare('INSERT OR IGNORE INTO replay_cases VALUES (?)').run(id); }
+  isReplay(id: string): boolean { return !!this.db.prepare('SELECT 1 FROM replay_cases WHERE dispute_id=?').get(id); }
+  assertNotReplay(id: string) { if (this.isReplay(id)) throw new ReplayCaseError('Read-only replay: no writes are allowed'); }
   assertMutable(id: string) {
+    this.assertNotReplay(id);
     if (this.db.prepare("SELECT 1 FROM submission_attempts WHERE dispute_id=? AND status IN ('submitting','unknown')").get(id)) throw new PendingSubmissionError('Submission is pending');
   }
   reserveSubmission(a: SubmissionAttempt) {

@@ -1,3 +1,5 @@
+import stage3cWeak from './__fixtures__/stage3c-weak.json';
+import stage3cStrong from './__fixtures__/stage3c-strong.json';
 import capturedInjection from './__fixtures__/stage2c-injection.json';
 import capturedLow from './__fixtures__/stage2c-low.json';
 import capturedWeak from './__fixtures__/stage2c-weak.json';
@@ -84,14 +86,16 @@ describe('deterministic case file guard', () => {
     value.evidence_draft.attach_records = ['unread-record'];
     expect(checkCaseFile(value, sources).accepted).toBe(false);
   });
-  it('derives evidence strength only from guard results and gaps', () => {
-    const supported = trustedFacts(syntheticDispute('strong-delivery'), scenarios['strong-delivery'], true);
+  it('derives distinct strength from trusted delivery facts, ignoring the Orders limitation', () => {
+    const supported = trustedFacts(syntheticDispute('strong-delivery'), scenarios['strong-delivery']);
     const limited = trustedFacts(syntheticDispute('weak-delivery'), scenarios['weak-delivery']);
+    expect(supported.gaps.some(g => g.missing.includes('Orders'))).toBe(true);
+    expect(evidenceStrength({ accepted: true, reasons: [] }, trustedFacts(syntheticDispute('low-value'), scenarios['low-value']))).toBe('partial');
     expect(evidenceStrength(undefined, supported)).toBe('unreviewed');
     expect(evidenceStrength({ accepted: false, reasons: ['Unread citation'] }, supported)).toBe('rejected');
     expect(evidenceStrength({ accepted: false, reasons: [] }, limited)).toBe('rejected');
-    expect(evidenceStrength({ accepted: true, reasons: [] }, limited)).toBe('limited');
-    expect(evidenceStrength({ accepted: true, reasons: [] }, supported)).toBe('supported');
+    expect(evidenceStrength({ accepted: true, reasons: [] }, limited)).toBe('weak');
+    expect(evidenceStrength({ accepted: true, reasons: [] }, supported)).toBe('strong');
   });
 });
 it.each(['usd 999.00', '999.00 dollars', 'USD +999.00', 'USD 120.0001'])('rejects unsupported currency spellings or precision: %s', figure => {
@@ -249,4 +253,30 @@ it.each([
 it('accepts the final live injection statement about absent evidence in the customer message rather than denying delivery', () => {
   const copy = file(); copy.summary = 'The customer message record contains no delivery or settlement evidence; non-evidentiary content was excluded.';
   expect(checkCaseFile(copy, sources, [SYSTEM_PROMPT])).toMatchObject({ accepted: true, reasons: [] });
+});
+
+it('accepts the stage 3c plain-English conditional money statements with the current prompt', () => {
+  expect(checkCaseFile(stage3cStrong.caseFile as CaseFile, stage3cStrong.sources, [SYSTEM_PROMPT],
+    trustedFacts(syntheticDispute('strong-delivery'), scenarios['strong-delivery'])))
+    .toMatchObject({ accepted: true, reasons: [] });
+});
+
+it('accepts the stage 3c weak-delivery prose with coordinated unsupported proof', () => {
+  const captured = stage3cWeak;
+  expect(checkCaseFile(captured.caseFile as CaseFile, captured.sources, [SYSTEM_PROMPT],
+    trustedFacts(syntheticDispute('weak-delivery'), scenarios['weak-delivery'])))
+    .toMatchObject({ accepted: true, reasons: [] });
+});
+it.each([
+  'Delivery, signature and a matching address are all unsupported.',
+  'Delivery, signature and matching address are all unproven.',
+])('scopes plain-English absence to the listed proof only: %s', text => {
+  const copy = structuredClone(capturedWeak.caseFile) as CaseFile;
+  const facts = trustedFacts(syntheticDispute('weak-delivery'), scenarios['weak-delivery']);
+  copy.summary = text;
+  expect(checkCaseFile(copy, capturedWeak.sources, [SYSTEM_PROMPT], facts).accepted).toBe(true);
+  copy.summary += ' A signature is recorded.';
+  expect(checkCaseFile(copy, capturedWeak.sources, [SYSTEM_PROMPT], facts).reasons).toContain('Text contradicts trusted fact: signed');
+  const strong = file(); strong.summary = text;
+  expect(checkCaseFile(strong, sources).accepted).toBe(false);
 });

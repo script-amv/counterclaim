@@ -4,9 +4,9 @@ import { caseFileSchema, type CaseFile, type GuardResult, type SubmissionAttempt
 import type { publicDispute } from './privacy';
 export type { CaseFile, GuardResult, SubmissionAction, ReadSource, ToolTrace } from '../agent/schema';
 export type PublicDispute = ReturnType<typeof publicDispute>;
-export type EvidenceStrength = 'unreviewed' | 'rejected' | 'limited' | 'supported';
+export type EvidenceStrength = 'unreviewed' | 'rejected' | 'weak' | 'partial' | 'strong';
 export interface CaseQueueRow {
-  id: string; amount: { currency_code: string; value: string } | null; reason: string | null;
+  lastSyncedAt?: string; replay: boolean; title: string; id: string; amount: { currency_code: string; value: string } | null; reason: string | null;
   stage: string; deadline: string | null; whoseTurn: string; nextActions: string[]; evidenceStrength: EvidenceStrength;
 }
 export interface CasesResponse { cases: CaseQueueRow[] }
@@ -17,16 +17,18 @@ export interface RunResponse {
   id: string; model: string; status: 'running' | 'completed' | 'rejected' | 'failed';
   startedAt: string; endedAt?: string; toolCalls: ToolTrace[]; tokens: number; tokensEstimated: boolean; cost?: number; failure?: string; provider?: string; turns?: number; failureCode?: import('../agent/provider').FailureCode;
 }
-export interface ApprovalResponse { id: string; versionId: string; contentHash: string; createdAt: string }
+export interface ApprovalResponse { stage: string; id: string; versionId: string; contentHash: string; createdAt: string }
 export type AttemptResponse = SubmissionAttempt;
 export interface CaseEventResponse { id: number; kind: string; observedAt: string; snapshot: PublicDispute }
 export interface CaseDetailResponse {
+  snapshotFingerprint: string;
+  computed: { citationHighlights: Record<string, string[]>[]; instructionNotice: string | null; money: import('../agent/money').MoneyFacts; gaps: CaseFile['gaps'] };
   case: CaseQueueRow; dispute: PublicDispute; caseFileVersions: CaseFileVersionResponse[];
   runs: RunResponse[]; events: CaseEventResponse[]; approvals: ApprovalResponse[]; attempts: AttemptResponse[];
 }
 export const investigateRequestSchema = z.object({}).strict();
-export const editCaseFileRequestSchema = z.object({ caseFile: caseFileSchema }).strict();
-export const approveRequestSchema = z.object({ versionId: z.string().uuid() }).strict();
+export const editCaseFileRequestSchema = z.object({ caseFile: caseFileSchema, baseVersionId: z.string().uuid() }).strict();
+export const approveRequestSchema = z.object({ versionId: z.string().uuid(), snapshotFingerprint: z.string().regex(/^[a-f0-9]{64}$/) }).strict();
 export const submitRequestSchema = z.object({ approvalId: z.string().uuid() }).strict();
 export type InvestigateRequest = z.infer<typeof investigateRequestSchema>;
 export type EditCaseFileRequest = z.infer<typeof editCaseFileRequestSchema>;
