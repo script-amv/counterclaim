@@ -1,0 +1,307 @@
+{
+  "caseFile": {
+    "summary": "Sandbox demo case DEMO-low-value: buyer filed a MERCHANDISE_OR_SERVICE_NOT_RECEIVED inquiry for USD 12.00 on 2026-11-04; the dispute is in INQUIRY stage with status WAITING_FOR_SELLER_RESPONSE and a seller response due 2026-11-12. Seller records show a completed USD 12.00 order for one demo notebook (low-value-order-01), a shipment with matching address but no signature and status IN_TRANSIT (low-value-shipment-01), and only a carrier acceptance scan with delivery explicitly not confirmed (low-value-tracking_event-01). The buyer wrote that the parcel has not arrived and offered to settle for a USD 6.00 partial refund (low-value-customer_message-01). Recorded costs are USD 3.00 item and USD 2.00 shipping (low-value-cost-01), so MoneyFacts show net_if_won USD 7.00 and net_if_lost USD -5.00. Because receipt is unproven and the customer has recorded willingness to settle, the recommended action is to offer USD 6.00 rather than contest the claim.",
+    "timeline": [
+      {
+        "date": "2026-11-01T10:00:00Z",
+        "event": "Demo order DEMO-ORDER-low-value recorded as COMPLETED for 1 x Demo notebook at USD 12.00, with a delivery address reference on file.",
+        "citations": [
+          "low-value-order-01",
+          "dispute.dispute_amount"
+        ]
+      },
+      {
+        "date": "2026-11-02T10:00:00Z",
+        "event": "Shipment created under tracking number DEMO-TRACKING-low-value with DEMO CARRIER; address_matches true, signed false, status IN_TRANSIT, proof limited to a carrier acceptance scan.",
+        "citations": [
+          "low-value-shipment-01"
+        ]
+      },
+      {
+        "date": "2026-11-03T10:00:00Z",
+        "event": "Tracking event shows status ACCEPTED with detail that delivery is not confirmed.",
+        "citations": [
+          "low-value-tracking_event-01"
+        ]
+      },
+      {
+        "date": "2026-11-04T10:00:00Z",
+        "event": "Buyer opened a MERCHANDISE_OR_SERVICE_NOT_RECEIVED inquiry for USD 12.00 (dispute DEMO-low-value).",
+        "citations": [
+          "dispute.dispute_id",
+          "dispute.reason",
+          "dispute.create_time",
+          "dispute.dispute_amount"
+        ]
+      },
+      {
+        "date": "2026-11-04T10:00:00Z",
+        "event": "Buyer messaged that the parcel has not arrived and stated willingness to settle with a partial refund of USD 6.00.",
+        "citations": [
+          "low-value-customer_message-01"
+        ]
+      },
+      {
+        "date": "2026-11-05T10:00:00Z",
+        "event": "Dispute updated; status is WAITING_FOR_SELLER_RESPONSE in the INQUIRY life-cycle stage.",
+        "citations": [
+          "dispute.update_time",
+          "dispute.status",
+          "dispute.dispute_life_cycle_stage"
+        ]
+      },
+      {
+        "date": "2026-11-12T10:00:00Z",
+        "event": "Seller response due date for the dispute.",
+        "citations": [
+          "dispute.seller_response_due_date"
+        ]
+      }
+    ],
+    "claims": [
+      {
+        "text": "The dispute is an item-not-received inquiry for USD 12.00, currently in INQUIRY stage with status WAITING_FOR_SELLER_RESPONSE and a response due 2026-11-12.",
+        "citations": [
+          "dispute.dispute_id",
+          "dispute.reason",
+          "dispute.dispute_amount",
+          "dispute.dispute_life_cycle_stage",
+          "dispute.status",
+          "dispute.seller_response_due_date"
+        ]
+      },
+      {
+        "text": "The seller's order record shows a completed USD 12.00 order for one Demo notebook, matching the disputed amount.",
+        "citations": [
+          "low-value-order-01",
+          "dispute.dispute_amount"
+        ]
+      },
+      {
+        "text": "The shipment record shows the delivery address matches and the parcel was not signed for, with status IN_TRANSIT and proof limited to a carrier acceptance scan.",
+        "citations": [
+          "low-value-shipment-01"
+        ]
+      },
+      {
+        "text": "The only tracking event on file is an ACCEPTED carrier scan that explicitly states delivery is not confirmed; there is no delivery or signature confirmation in the records.",
+        "citations": [
+          "low-value-tracking_event-01",
+          "low-value-shipment-01"
+        ]
+      },
+      {
+        "text": "The buyer stated the parcel has not arrived and offered to settle for a partial refund of USD 6.00, so willingness to settle is recorded.",
+        "citations": [
+          "low-value-customer_message-01"
+        ]
+      },
+      {
+        "text": "Recorded costs are USD 3.00 item cost and USD 2.00 shipping cost; MoneyFacts therefore show net_if_won USD 7.00 and net_if_lost USD -5.00 for the USD 12.00 disputed amount. These are conditional outcomes, not probabilities.",
+        "citations": [
+          "low-value-cost-01",
+          "dispute.dispute_amount"
+        ]
+      },
+      {
+        "text": "The demo store policy permits investigating delivery issues via carrier scans and agreeing to a refund or settlement, but it does not establish PayPal eligibility or legal rights.",
+        "citations": [
+          "low-value-policy-01"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "missing": "Confirmed delivery",
+        "why_it_matters": "Receipt has not been established."
+      },
+      {
+        "missing": "Signature confirmation",
+        "why_it_matters": "Signed receipt has not been established."
+      },
+      {
+        "missing": "Verified PayPal Orders lookup unavailable",
+        "why_it_matters": "No verified Orders v2 ID is available; seller records are demo evidence only."
+      },
+      {
+        "missing": "Confirmed delivery (proof of receipt)",
+        "why_it_matters": "Receipt has not been established, so the item-not-received claim cannot be rebutted with the current records."
+      },
+      {
+        "missing": "Verified PayPal Orders v2 lookup / order ID",
+        "why_it_matters": "No verified Orders v2 ID is available, so seller records are demo evidence only and cannot be corroborated against PayPal order data."
+      },
+      {
+        "missing": "Carrier proof-of-delivery documentation beyond the acceptance scan",
+        "why_it_matters": "Without a delivery scan or carrier statement, the tracking evidence supports only that the carrier accepted the parcel, not that it arrived."
+      }
+    ],
+    "recommendation": {
+      "action": "offer",
+      "reasoning": "Proof of receipt is partial at best: the address matches, but the parcel is unsigned, still IN_TRANSIT, and the only scan is a carrier acceptance event that states delivery is not confirmed (low-value-shipment-01, low-value-tracking_event-01). The buyer has recorded willingness to settle at a USD 6.00 partial refund (low-value-customer_message-01), which is within the USD 12.00 disputed amount (dispute.dispute_amount). Contesting an unproven-delivery item-not-received claim is unlikely to succeed, and MoneyFacts show net_if_lost USD -5.00 versus net_if_won USD 7.00, so a USD 6.00 settlement limits exposure while resolving the case before the 2026-11-12 response deadline (dispute.seller_response_due_date).",
+      "confidence": {
+        "level": "medium",
+        "reason": "The absence of delivery and signature confirmation is clearly documented and the buyer's settlement willingness is recorded, but the underlying order data is synthetic demo evidence with no verified PayPal Orders v2 lookup, so the strength of the seller's position cannot be fully validated."
+      },
+      "offer_amount": {
+        "currency_code": "USD",
+        "value": "6.00"
+      }
+    },
+    "evidence_draft": {
+      "seller_note": "Buyer reports the parcel has not arrived. Our records show order DEMO-ORDER-low-value for USD 12.00 shipped under tracking DEMO-TRACKING-low-value with a matching delivery address, but the shipment is unsigned and the only carrier event is an acceptance scan that does not confirm delivery. The buyer has offered to settle for a USD 6.00 partial refund, which we are prepared to accept to resolve this inquiry. Attached records are sandbox demo data from the seller store.",
+      "attach_records": [
+        "low-value-order-01",
+        "low-value-shipment-01",
+        "low-value-tracking_event-01",
+        "low-value-customer_message-01",
+        "low-value-cost-01",
+        "low-value-policy-01"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "dispute.dispute_id",
+      "data": "DEMO-low-value"
+    },
+    {
+      "id": "dispute.status",
+      "data": "WAITING_FOR_SELLER_RESPONSE"
+    },
+    {
+      "id": "dispute.reason",
+      "data": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED"
+    },
+    {
+      "id": "dispute.dispute_life_cycle_stage",
+      "data": "INQUIRY"
+    },
+    {
+      "id": "dispute.create_time",
+      "data": "2026-11-04T10:00:00Z"
+    },
+    {
+      "id": "dispute.update_time",
+      "data": "2026-11-05T10:00:00Z"
+    },
+    {
+      "id": "dispute.seller_response_due_date",
+      "data": "2026-11-12T10:00:00Z"
+    },
+    {
+      "id": "dispute.dispute_amount",
+      "data": {
+        "currency_code": "USD",
+        "value": "12.00"
+      }
+    },
+    {
+      "id": "dispute.links",
+      "data": [
+        {
+          "rel": "provide_evidence",
+          "href": "sandbox-action",
+          "method": "POST"
+        },
+        {
+          "rel": "make_offer",
+          "href": "sandbox-action",
+          "method": "POST"
+        },
+        {
+          "rel": "accept_claim",
+          "href": "sandbox-action",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "id": "low-value-order-01",
+      "data": {
+        "id": "low-value-order-01",
+        "type": "order",
+        "timestamp": "2026-11-01T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "order_id": "DEMO-ORDER-low-value",
+          "status": "COMPLETED",
+          "currency_code": "USD",
+          "amount": "12.00",
+          "item": "Demo notebook",
+          "quantity": 1,
+          "delivery_address_reference": "DEMO-ADDRESS-REFERENCE"
+        }
+      }
+    },
+    {
+      "id": "low-value-shipment-01",
+      "data": {
+        "id": "low-value-shipment-01",
+        "type": "shipment",
+        "timestamp": "2026-11-02T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "tracking_number": "DEMO-TRACKING-low-value",
+          "carrier_name": "DEMO CARRIER",
+          "address_matches": true,
+          "signed": false,
+          "status": "IN_TRANSIT",
+          "proof": "Demo carrier acceptance scan only; no delivery confirmation."
+        }
+      }
+    },
+    {
+      "id": "low-value-tracking_event-01",
+      "data": {
+        "id": "low-value-tracking_event-01",
+        "type": "tracking_event",
+        "timestamp": "2026-11-03T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "tracking_number": "DEMO-TRACKING-low-value",
+          "status": "ACCEPTED",
+          "detail": "Demo carrier acceptance scan; delivery is not confirmed."
+        }
+      }
+    },
+    {
+      "id": "low-value-customer_message-01",
+      "data": {
+        "id": "low-value-customer_message-01",
+        "type": "customer_message",
+        "timestamp": "2026-11-04T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "text": "The parcel has not arrived. I am willing to settle with a partial refund of USD 6.00."
+        }
+      }
+    },
+    {
+      "id": "low-value-policy-01",
+      "data": {
+        "id": "low-value-policy-01",
+        "type": "policy",
+        "timestamp": "2026-11-01T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "text": "Demo policy: investigate delivery issues using carrier scans. A seller may agree to a refund or settlement. This synthetic store policy does not establish PayPal eligibility or legal rights."
+        }
+      }
+    },
+    {
+      "id": "low-value-cost-01",
+      "data": {
+        "id": "low-value-cost-01",
+        "type": "cost",
+        "timestamp": "2026-11-01T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "currency_code": "USD",
+          "item_cost": "3.00",
+          "shipping_cost": "2.00"
+        }
+      }
+    }
+  ]
+}

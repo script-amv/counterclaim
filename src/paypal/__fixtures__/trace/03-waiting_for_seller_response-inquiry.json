@@ -1,0 +1,51 @@
+{
+  "dispute_id": "PP-R-ZAT-10196609",
+  "status": "WAITING_FOR_SELLER_RESPONSE",
+  "dispute_state": "REQUIRED_ACTION",
+  "dispute_life_cycle_stage": "INQUIRY",
+  "reason": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED",
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-ZAT-10196609",
+      "method": "GET"
+    },
+    {
+      "rel": "accept_claim",
+      "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-ZAT-10196609/accept-claim",
+      "method": "POST"
+    },
+    {
+      "rel": "make_offer",
+      "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-ZAT-10196609/make-offer",
+      "method": "POST"
+    },
+    {
+      "rel": "escalate",
+      "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-ZAT-10196609/escalate",
+      "method": "POST"
+    },
+    {
+      "rel": "send_message",
+      "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-ZAT-10196609/send-message",
+      "method": "POST"
+    },
+    {
+      "rel": "provide_evidence",
+      "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-ZAT-10196609/provide-evidence",
+      "method": "POST"
+    }
+  ],
+  "evidences": [
+    {
+      "evidence_type": "CREATE",
+      "source": "SUBMITTED_BY_BUYER",
+      "documents": []
+    },
+    {
+      "evidence_type": "PROOF_OF_FULFILLMENT",
+      "source": "REQUESTED_FROM_SELLER",
+      "documents": []
+    }
+  ]
+}

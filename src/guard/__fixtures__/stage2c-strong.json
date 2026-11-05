@@ -1,0 +1,301 @@
+{
+  "caseFile": {
+    "summary": "Buyer opened an INR (MERCHANDISE_OR_SERVICE_NOT_RECEIVED) inquiry on sandbox dispute DEMO-strong-delivery for USD 120.00, created 2026-11-04T10:00:00Z with a seller response due 2026-11-12T10:00:00Z. The seller's demo records show order DEMO-ORDER-strong-delivery (Demo desk lamp, qty 1, USD 120.00, status COMPLETED) shipped under tracking DEMO-TRACKING-strong-delivery with DEMO CARRIER; the shipment record states status DELIVERED, signed=true, address_matches=true, and the tracking event confirms a signed delivery scan matching the order address reference. The buyer's message of 2026-11-04 asserts the parcel has not arrived, which conflicts with the recorded delivery scan. TrustedFacts corroborate delivered=true, signed=true, addressMatches=true, trackingStalled=false, and customerWillingToSettle=false. MoneyFacts: disputed amount USD 120.00, recorded item cost USD 45.00, shipping cost USD 8.00, net_if_won USD 67.00, net_if_lost USD -53.00 (conditional outcomes, not probabilities). Key limitation: no verified PayPal Orders v2 ID is available, so all delivery proof is synthetic demo seller data only.",
+    "timeline": [
+      {
+        "date": "2026-11-01T10:00:00Z",
+        "event": "Seller order record created: DEMO-ORDER-strong-delivery, Demo desk lamp x1, USD 120.00, status COMPLETED, delivery address reference DEMO-ADDRESS-REFERENCE.",
+        "citations": [
+          "strong-delivery-order-01",
+          "dispute.dispute_amount"
+        ]
+      },
+      {
+        "date": "2026-11-01T10:00:00Z",
+        "event": "Recorded costs for the order: item cost USD 45.00 and shipping cost USD 8.00.",
+        "citations": [
+          "strong-delivery-cost-01"
+        ]
+      },
+      {
+        "date": "2026-11-01T10:00:00Z",
+        "event": "Demo store policy recorded: investigate delivery issues using carrier scans; seller may agree to a refund or settlement (synthetic policy, does not establish PayPal eligibility or legal rights).",
+        "citations": [
+          "strong-delivery-policy-01"
+        ]
+      },
+      {
+        "date": "2026-11-02T10:00:00Z",
+        "event": "Shipment record created: tracking DEMO-TRACKING-strong-delivery via DEMO CARRIER, status DELIVERED, signed=true, address_matches=true, with demo delivery scan and signature confirmation for the order address.",
+        "citations": [
+          "strong-delivery-shipment-01"
+        ]
+      },
+      {
+        "date": "2026-11-03T10:00:00Z",
+        "event": "Tracking event recorded: status DELIVERED, demo signed delivery scan, address reference matches the order.",
+        "citations": [
+          "strong-delivery-tracking_event-01"
+        ]
+      },
+      {
+        "date": "2026-11-04T10:00:00Z",
+        "event": "Buyer message received: 'The parcel has not arrived. Please check the delivery.'",
+        "citations": [
+          "strong-delivery-customer_message-01"
+        ]
+      },
+      {
+        "date": "2026-11-04T10:00:00Z",
+        "event": "PayPal sandbox dispute DEMO-strong-delivery opened for MERCHANDISE_OR_SERVICE_NOT_RECEIVED, USD 120.00, life cycle stage INQUIRY.",
+        "citations": [
+          "dispute.dispute_id",
+          "dispute.reason",
+          "dispute.create_time",
+          "dispute.dispute_life_cycle_stage",
+          "dispute.dispute_amount"
+        ]
+      },
+      {
+        "date": "2026-11-05T10:00:00Z",
+        "event": "Dispute status updated to WAITING_FOR_SELLER_RESPONSE; seller response due 2026-11-12T10:00:00Z.",
+        "citations": [
+          "dispute.status",
+          "dispute.update_time",
+          "dispute.seller_response_due_date"
+        ]
+      }
+    ],
+    "claims": [
+      {
+        "text": "The dispute is an item-not-received inquiry for USD 120.00 and is currently awaiting the seller's response, with a response deadline of 2026-11-12T10:00:00Z.",
+        "citations": [
+          "dispute.reason",
+          "dispute.dispute_amount",
+          "dispute.status",
+          "dispute.seller_response_due_date"
+        ]
+      },
+      {
+        "text": "Seller records show the order was shipped with tracking DEMO-TRACKING-strong-delivery and recorded as DELIVERED with a signature and a matching delivery address.",
+        "citations": [
+          "strong-delivery-shipment-01",
+          "strong-delivery-tracking_event-01"
+        ]
+      },
+      {
+        "text": "The buyer's only recorded statement is that the parcel has not arrived, which contradicts the recorded signed delivery scan; no buyer-side evidence (e.g., carrier confirmation of non-delivery) appears in the records.",
+        "citations": [
+          "strong-delivery-customer_message-01",
+          "strong-delivery-tracking_event-01"
+        ]
+      },
+      {
+        "text": "TrustedFacts for this case indicate delivered=true, signed=true, addressMatches=true and trackingStalled=false, so this is not a stalled-tracking or address-mismatch scenario.",
+        "citations": [
+          "dispute.dispute_id",
+          "strong-delivery-shipment-01"
+        ]
+      },
+      {
+        "text": "MoneyFacts: disputed amount USD 120.00 less recorded item cost USD 45.00 and shipping cost USD 8.00 gives net_if_won USD 67.00 and net_if_lost USD -53.00; these are conditional outcomes, not probabilities.",
+        "citations": [
+          "dispute.dispute_amount",
+          "strong-delivery-cost-01"
+        ]
+      },
+      {
+        "text": "The customer is not recorded as willing to settle, so a settlement offer has no indicated buyer-side support in the records.",
+        "citations": [
+          "strong-delivery-customer_message-01",
+          "dispute.dispute_id"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "missing": "Verified PayPal Orders lookup unavailable",
+        "why_it_matters": "No verified Orders v2 ID is available; seller records are demo evidence only."
+      },
+      {
+        "missing": "Verified PayPal Orders v2 lookup / order ID",
+        "why_it_matters": "No verified PayPal order record exists for this case, so the delivery proof rests entirely on synthetic demo seller records and cannot be independently matched to the PayPal transaction."
+      },
+      {
+        "missing": "Carrier-side or third-party verification of the delivery scan and signature",
+        "why_it_matters": "The delivery and signature evidence is a demo seller record (strong-delivery-shipment-01, strong-delivery-tracking_event-01); without independent carrier confirmation the proof of delivery is only as strong as the seller's own data."
+      },
+      {
+        "missing": "Buyer acknowledgement of receipt or any buyer-side evidence",
+        "why_it_matters": "The buyer asserts non-arrival and has provided no documents; there is also no buyer confirmation of receipt, so the conflict between the buyer's message and the delivery scan is unresolved on the record."
+      },
+      {
+        "missing": "Proof of the delivery address matching the PayPal transaction address",
+        "why_it_matters": "The records only reference DEMO-ADDRESS-REFERENCE and state address_matches=true; without the actual transaction address comparison, the address-match assertion cannot be independently checked."
+      }
+    ],
+    "recommendation": {
+      "action": "fight",
+      "reasoning": "The case is a strong delivery scenario: the seller's records show the order shipped with tracking DEMO-TRACKING-strong-delivery and recorded as DELIVERED with a signature and a matching address (strong-delivery-shipment-01, strong-delivery-tracking_event-01), and TrustedFacts confirm delivered=true, signed=true, addressMatches=true, trackingStalled=false. The buyer's sole recorded statement is a bare non-arrival claim (strong-delivery-customer_message-01) with no supporting evidence. Because tracking is not stalled and there is no address mismatch, the guidance to avoid fighting does not apply, and the customer is not recorded as willing to settle, so a settlement offer is not indicated. The seller should respond with the delivery and signature evidence before the 2026-11-12T10:00:00Z deadline. Note the material limitation that no verified PayPal Orders v2 record exists, so all proof is synthetic demo seller data.",
+      "confidence": {
+        "level": "medium",
+        "reason": "Delivery, signature and address match are consistently recorded across the shipment and tracking records and corroborated by TrustedFacts, but the only proof is synthetic demo seller data with no verified PayPal Orders v2 lookup and no independent carrier or buyer confirmation, so the evidence cannot be fully validated."
+      }
+    },
+    "evidence_draft": {
+      "seller_note": "This is a sandbox demo case. The buyer filed an item-not-received inquiry for USD 120.00 on order DEMO-ORDER-strong-delivery (Demo desk lamp, qty 1). Our records show the order was shipped under tracking DEMO-TRACKING-strong-delivery with DEMO CARRIER and recorded as DELIVERED, with a signed delivery scan and a delivery address matching the order address reference (shipment record strong-delivery-shipment-01; tracking event strong-delivery-tracking_event-01). The buyer's message of 2026-11-04 states the parcel has not arrived, which conflicts with the recorded signed delivery scan. We are attaching the order, shipment, tracking event, cost and policy records for review. We acknowledge that these are synthetic demo records and that no verified PayPal Orders v2 record is available for this case.",
+      "attach_records": [
+        "strong-delivery-order-01",
+        "strong-delivery-shipment-01",
+        "strong-delivery-tracking_event-01",
+        "strong-delivery-customer_message-01",
+        "strong-delivery-cost-01",
+        "strong-delivery-policy-01"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "dispute.dispute_id",
+      "data": "DEMO-strong-delivery"
+    },
+    {
+      "id": "dispute.status",
+      "data": "WAITING_FOR_SELLER_RESPONSE"
+    },
+    {
+      "id": "dispute.reason",
+      "data": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED"
+    },
+    {
+      "id": "dispute.dispute_life_cycle_stage",
+      "data": "INQUIRY"
+    },
+    {
+      "id": "dispute.create_time",
+      "data": "2026-11-04T10:00:00Z"
+    },
+    {
+      "id": "dispute.update_time",
+      "data": "2026-11-05T10:00:00Z"
+    },
+    {
+      "id": "dispute.seller_response_due_date",
+      "data": "2026-11-12T10:00:00Z"
+    },
+    {
+      "id": "dispute.dispute_amount",
+      "data": {
+        "currency_code": "USD",
+        "value": "120.00"
+      }
+    },
+    {
+      "id": "dispute.links",
+      "data": [
+        {
+          "rel": "provide_evidence",
+          "href": "sandbox-action",
+          "method": "POST"
+        },
+        {
+          "rel": "make_offer",
+          "href": "sandbox-action",
+          "method": "POST"
+        },
+        {
+          "rel": "accept_claim",
+          "href": "sandbox-action",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "id": "strong-delivery-order-01",
+      "data": {
+        "id": "strong-delivery-order-01",
+        "type": "order",
+        "timestamp": "2026-11-01T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "order_id": "DEMO-ORDER-strong-delivery",
+          "status": "COMPLETED",
+          "currency_code": "USD",
+          "amount": "120.00",
+          "item": "Demo desk lamp",
+          "quantity": 1,
+          "delivery_address_reference": "DEMO-ADDRESS-REFERENCE"
+        }
+      }
+    },
+    {
+      "id": "strong-delivery-shipment-01",
+      "data": {
+        "id": "strong-delivery-shipment-01",
+        "type": "shipment",
+        "timestamp": "2026-11-02T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "tracking_number": "DEMO-TRACKING-strong-delivery",
+          "carrier_name": "DEMO CARRIER",
+          "address_matches": true,
+          "signed": true,
+          "status": "DELIVERED",
+          "proof": "Demo delivery scan and signature confirmation recorded for the order address."
+        }
+      }
+    },
+    {
+      "id": "strong-delivery-tracking_event-01",
+      "data": {
+        "id": "strong-delivery-tracking_event-01",
+        "type": "tracking_event",
+        "timestamp": "2026-11-03T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "tracking_number": "DEMO-TRACKING-strong-delivery",
+          "status": "DELIVERED",
+          "detail": "Demo signed delivery scan; address reference matches order."
+        }
+      }
+    },
+    {
+      "id": "strong-delivery-customer_message-01",
+      "data": {
+        "id": "strong-delivery-customer_message-01",
+        "type": "customer_message",
+        "timestamp": "2026-11-04T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "text": "The parcel has not arrived. Please check the delivery."
+        }
+      }
+    },
+    {
+      "id": "strong-delivery-policy-01",
+      "data": {
+        "id": "strong-delivery-policy-01",
+        "type": "policy",
+        "timestamp": "2026-11-01T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "text": "Demo policy: investigate delivery issues using carrier scans. A seller may agree to a refund or settlement. This synthetic store policy does not establish PayPal eligibility or legal rights."
+        }
+      }
+    },
+    {
+      "id": "strong-delivery-cost-01",
+      "data": {
+        "id": "strong-delivery-cost-01",
+        "type": "cost",
+        "timestamp": "2026-11-01T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "currency_code": "USD",
+          "item_cost": "45.00",
+          "shipping_cost": "8.00"
+        }
+      }
+    }
+  ]
+}

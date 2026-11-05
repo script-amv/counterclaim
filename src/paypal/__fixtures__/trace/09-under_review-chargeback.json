@@ -1,0 +1,49 @@
+{
+  "dispute_id": "PP-R-ZAT-10196609",
+  "status": "UNDER_REVIEW",
+  "dispute_state": "UNDER_PAYPAL_REVIEW",
+  "dispute_life_cycle_stage": "CHARGEBACK",
+  "reason": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED",
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-ZAT-10196609",
+      "method": "GET"
+    },
+    {
+      "rel": "provide_supporting_info",
+      "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-ZAT-10196609/provide-supporting-info",
+      "method": "POST"
+    }
+  ],
+  "evidences": [
+    {
+      "evidence_type": "CREATE",
+      "source": "SUBMITTED_BY_BUYER",
+      "documents": []
+    },
+    {
+      "evidence_type": "PROOF_OF_FULFILLMENT",
+      "source": "SUBMITTED_BY_SELLER",
+      "documents": [
+        {
+          "name": "fake-delivery.pdf"
+        }
+      ]
+    },
+    {
+      "evidence_type": "OTHER",
+      "source": "SUBMITTED_BY_SELLER",
+      "documents": []
+    },
+    {
+      "evidence_type": "PROOF_OF_FULFILLMENT",
+      "source": "SUBMITTED_BY_SELLER",
+      "documents": [
+        {
+          "name": "fake-delivery.pdf"
+        }
+      ]
+    }
+  ]
+}

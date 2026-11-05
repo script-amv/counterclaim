@@ -1,0 +1,343 @@
+{
+  "caseFile": {
+    "summary": "Sandbox demo case DEMO-weak-delivery is a MERCHANDISE_OR_SERVICE_NOT_RECEIVED inquiry for USD 120.00 (Demo desk lamp, order DEMO-ORDER-weak-delivery) opened 2026-11-04 and currently WAITING_FOR_SELLER_RESPONSE with a seller response due 2026-11-12. The seller's own demo records do not establish receipt: the shipment record shows address_matches=false, signed=false and status STALLED, and the tracking event confirms tracking stalled with delivery unconfirmed. The buyer wrote that the parcel has not arrived. No verified PayPal Orders v2 lookup is available, so only synthetic seller records exist. Because delivery, signature and address match are all unestablished and tracking is stalled, the proof position is effectively absent rather than partial, and the buyer is not recorded as willing to settle; contesting the claim is not supported by the records. Recorded costs are item 45.00 + shipping 8.00, so the conditional outcomes computed in code are net_if_won 67.00 and net_if_lost -53.00 (conditional outcomes, not probabilities).",
+    "timeline": [
+      {
+        "date": "2026-11-01T10:00:00Z",
+        "event": "Demo order record created: order DEMO-ORDER-weak-delivery, status COMPLETED, USD 120.00, 1 x Demo desk lamp, delivery address reference DEMO-ADDRESS-REFERENCE.",
+        "citations": [
+          "weak-delivery-order-01"
+        ]
+      },
+      {
+        "date": "2026-11-01T10:00:00Z",
+        "event": "Recorded costs captured for the order: item cost 45.00 USD and shipping cost 8.00 USD.",
+        "citations": [
+          "weak-delivery-cost-01"
+        ]
+      },
+      {
+        "date": "2026-11-01T10:00:00Z",
+        "event": "Demo store policy recorded: investigate delivery issues using carrier scans; a seller may agree to a refund or settlement (synthetic policy, does not establish PayPal eligibility or legal rights).",
+        "citations": [
+          "weak-delivery-policy-01"
+        ]
+      },
+      {
+        "date": "2026-11-02T10:00:00Z",
+        "event": "Shipment record created for tracking DEMO-TRACKING-weak-delivery with DEMO CARRIER: address_matches=false, signed=false, status STALLED; proof note states tracking has not advanced after carrier acceptance and the shipment address reference differs from the order.",
+        "citations": [
+          "weak-delivery-shipment-01"
+        ]
+      },
+      {
+        "date": "2026-11-03T10:00:00Z",
+        "event": "Tracking event recorded: status STALLED, detail states demo tracking stalled and delivery is not confirmed.",
+        "citations": [
+          "weak-delivery-tracking_event-01"
+        ]
+      },
+      {
+        "date": "2026-11-04T10:00:00Z",
+        "event": "Buyer message received: 'The parcel has not arrived. Please check the delivery.'",
+        "citations": [
+          "weak-delivery-customer_message-01"
+        ]
+      },
+      {
+        "date": "2026-11-04T10:00:00Z",
+        "event": "Dispute DEMO-weak-delivery created for reason MERCHANDISE_OR_SERVICE_NOT_RECEIVED, amount USD 120.00, life cycle stage INQUIRY.",
+        "citations": [
+          "dispute.dispute_id",
+          "dispute.reason",
+          "dispute.create_time",
+          "dispute.dispute_life_cycle_stage",
+          "dispute.dispute_amount"
+        ]
+      },
+      {
+        "date": "2026-11-05T10:00:00Z",
+        "event": "Dispute updated to status WAITING_FOR_SELLER_RESPONSE; evidence, offer and accept-claim actions are available to the seller.",
+        "citations": [
+          "dispute.update_time",
+          "dispute.status",
+          "dispute.links"
+        ]
+      },
+      {
+        "date": "2026-11-12T10:00:00Z",
+        "event": "Seller response deadline for the dispute.",
+        "citations": [
+          "dispute.seller_response_due_date"
+        ]
+      }
+    ],
+    "claims": [
+      {
+        "text": "The dispute is an item-not-received inquiry for USD 120.00 and is awaiting the seller's response, with a response deadline of 2026-11-12.",
+        "citations": [
+          "dispute.reason",
+          "dispute.dispute_amount",
+          "dispute.status",
+          "dispute.seller_response_due_date"
+        ]
+      },
+      {
+        "text": "The seller's demo records do not establish delivery: the shipment record shows status STALLED and the tracking event states delivery is not confirmed.",
+        "citations": [
+          "weak-delivery-shipment-01",
+          "weak-delivery-tracking_event-01"
+        ]
+      },
+      {
+        "text": "No signature confirmation exists in the records; the shipment record shows signed=false.",
+        "citations": [
+          "weak-delivery-shipment-01"
+        ]
+      },
+      {
+        "text": "The shipment address does not match the order: address_matches=false, and the shipment proof note says the shipment address reference differs from the order.",
+        "citations": [
+          "weak-delivery-shipment-01",
+          "weak-delivery-order-01"
+        ]
+      },
+      {
+        "text": "The buyer reported non-arrival in writing on 2026-11-04, the same day the dispute was created.",
+        "citations": [
+          "weak-delivery-customer_message-01",
+          "dispute.create_time"
+        ]
+      },
+      {
+        "text": "Recorded costs are item 45.00 USD and shipping 8.00 USD, giving code-computed conditional outcomes of net_if_won 67.00 and net_if_lost -53.00; these are conditional outcomes, not probabilities.",
+        "citations": [
+          "weak-delivery-cost-01",
+          "dispute.dispute_amount"
+        ]
+      },
+      {
+        "text": "The demo store policy allows investigating delivery issues via carrier scans and permits a refund or settlement, but it does not establish PayPal eligibility or legal rights.",
+        "citations": [
+          "weak-delivery-policy-01"
+        ]
+      },
+      {
+        "text": "No verified PayPal Orders v2 record is available for this case; the order tool returned only a gap notice, so all supporting material is synthetic seller demo data.",
+        "citations": [
+          "dispute.dispute_id",
+          "weak-delivery-order-01"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "missing": "Confirmed delivery",
+        "why_it_matters": "Receipt has not been established."
+      },
+      {
+        "missing": "Signature confirmation",
+        "why_it_matters": "Signed receipt has not been established."
+      },
+      {
+        "missing": "Matching shipment address",
+        "why_it_matters": "Delivery to the order address has not been established."
+      },
+      {
+        "missing": "Tracking stalled",
+        "why_it_matters": "Carrier tracking has not progressed."
+      },
+      {
+        "missing": "Verified PayPal Orders lookup unavailable",
+        "why_it_matters": "No verified Orders v2 ID is available; seller records are demo evidence only."
+      },
+      {
+        "missing": "Confirmed delivery (carrier proof of delivery or delivery scan)",
+        "why_it_matters": "Receipt is the central issue in an item-not-received claim; without a delivery scan the seller cannot show the buyer received the lamp."
+      },
+      {
+        "missing": "Shipment to the order address (matching address reference)",
+        "why_it_matters": "address_matches=false and the shipment note says the address reference differs from the order, so delivery to the order address is not established even if a parcel moved."
+      },
+      {
+        "missing": "Tracking progression after carrier acceptance",
+        "why_it_matters": "Tracking is STALLED with no further scans, so the shipment's current location and outcome are unknown and the seller cannot show forward movement."
+      },
+      {
+        "missing": "Verified PayPal Orders v2 lookup / transaction ID",
+        "why_it_matters": "No verified order data is available, so the seller records are demo evidence only and cannot be corroborated against PayPal's own transaction record."
+      },
+      {
+        "missing": "Any record of the buyer's willingness to settle",
+        "why_it_matters": "Settlement is only sensible when the customer is willing; no such willingness is recorded, so an offer has no documented basis."
+      },
+      {
+        "missing": "Carrier investigation or lost-parcel outcome",
+        "why_it_matters": "A carrier trace result would clarify whether the parcel is lost, which affects whether the seller can recover costs and how the claim should be resolved."
+      }
+    ],
+    "recommendation": {
+      "action": "refund",
+      "reasoning": "The seller's own demo records show no delivery, no signature, a non-matching shipment address and stalled tracking, and the buyer states the parcel never arrived. That is an absence of proof rather than partial proof, and the guidance for stalled tracking combined with an address mismatch is to avoid contesting the claim. Settlement is normally the alternative when proof is partial and the customer is willing, but no willingness to settle is recorded here, so an offer has no documented basis. Refunding the disputed USD 120.00 resolves the inquiry within the 2026-11-12 response window; the code-computed conditional outcome if the claim is lost is -53.00 (recorded item 45.00 plus shipping 8.00), versus net_if_won 67.00 if it were successfully contested, which the records do not support. These are conditional outcomes, not probabilities.",
+      "confidence": {
+        "level": "high",
+        "reason": "All trusted facts align and are corroborated by the seller records: delivered=false, signed=false, addressMatches=false, trackingStalled=true, and the buyer's written non-arrival message. No record in the case file supports delivery, so the conclusion that the claim should not be fought is well supported; the only limitation is that all evidence is synthetic sandbox demo data with no verified PayPal Orders v2 lookup."
+      }
+    },
+    "evidence_draft": {
+      "seller_note": "Sandbox demo case DEMO-weak-delivery (item-not-received, USD 120.00, order DEMO-ORDER-weak-delivery, Demo desk lamp). Our records do not establish delivery: shipment DEMO-TRACKING-weak-delivery with DEMO CARRIER is recorded as STALLED, signed=false, and address_matches=false, with a note that the shipment address reference differs from the order. The tracking event of 2026-11-03 confirms tracking stalled and delivery unconfirmed, and the buyer messaged on 2026-11-04 that the parcel has not arrived. Recorded costs are item 45.00 USD and shipping 8.00 USD. Because delivery, signature and address match are all unestablished, we are not contesting the claim and are resolving it by refunding the disputed amount. All records referenced are synthetic sandbox demo data; no verified PayPal Orders v2 record is available for this case.",
+      "attach_records": [
+        "weak-delivery-order-01",
+        "weak-delivery-shipment-01",
+        "weak-delivery-tracking_event-01",
+        "weak-delivery-customer_message-01",
+        "weak-delivery-cost-01",
+        "weak-delivery-policy-01"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "dispute.dispute_id",
+      "data": "DEMO-weak-delivery"
+    },
+    {
+      "id": "dispute.status",
+      "data": "WAITING_FOR_SELLER_RESPONSE"
+    },
+    {
+      "id": "dispute.reason",
+      "data": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED"
+    },
+    {
+      "id": "dispute.dispute_life_cycle_stage",
+      "data": "INQUIRY"
+    },
+    {
+      "id": "dispute.create_time",
+      "data": "2026-11-04T10:00:00Z"
+    },
+    {
+      "id": "dispute.update_time",
+      "data": "2026-11-05T10:00:00Z"
+    },
+    {
+      "id": "dispute.seller_response_due_date",
+      "data": "2026-11-12T10:00:00Z"
+    },
+    {
+      "id": "dispute.dispute_amount",
+      "data": {
+        "currency_code": "USD",
+        "value": "120.00"
+      }
+    },
+    {
+      "id": "dispute.links",
+      "data": [
+        {
+          "rel": "provide_evidence",
+          "href": "sandbox-action",
+          "method": "POST"
+        },
+        {
+          "rel": "make_offer",
+          "href": "sandbox-action",
+          "method": "POST"
+        },
+        {
+          "rel": "accept_claim",
+          "href": "sandbox-action",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "id": "weak-delivery-order-01",
+      "data": {
+        "id": "weak-delivery-order-01",
+        "type": "order",
+        "timestamp": "2026-11-01T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "order_id": "DEMO-ORDER-weak-delivery",
+          "status": "COMPLETED",
+          "currency_code": "USD",
+          "amount": "120.00",
+          "item": "Demo desk lamp",
+          "quantity": 1,
+          "delivery_address_reference": "DEMO-ADDRESS-REFERENCE"
+        }
+      }
+    },
+    {
+      "id": "weak-delivery-shipment-01",
+      "data": {
+        "id": "weak-delivery-shipment-01",
+        "type": "shipment",
+        "timestamp": "2026-11-02T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "tracking_number": "DEMO-TRACKING-weak-delivery",
+          "carrier_name": "DEMO CARRIER",
+          "address_matches": false,
+          "signed": false,
+          "status": "STALLED",
+          "proof": "Demo tracking has not advanced after carrier acceptance; shipment address reference differs from the order."
+        }
+      }
+    },
+    {
+      "id": "weak-delivery-tracking_event-01",
+      "data": {
+        "id": "weak-delivery-tracking_event-01",
+        "type": "tracking_event",
+        "timestamp": "2026-11-03T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "tracking_number": "DEMO-TRACKING-weak-delivery",
+          "status": "STALLED",
+          "detail": "Demo tracking stalled; delivery is not confirmed."
+        }
+      }
+    },
+    {
+      "id": "weak-delivery-customer_message-01",
+      "data": {
+        "id": "weak-delivery-customer_message-01",
+        "type": "customer_message",
+        "timestamp": "2026-11-04T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "text": "The parcel has not arrived. Please check the delivery."
+        }
+      }
+    },
+    {
+      "id": "weak-delivery-policy-01",
+      "data": {
+        "id": "weak-delivery-policy-01",
+        "type": "policy",
+        "timestamp": "2026-11-01T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "text": "Demo policy: investigate delivery issues using carrier scans. A seller may agree to a refund or settlement. This synthetic store policy does not establish PayPal eligibility or legal rights."
+        }
+      }
+    },
+    {
+      "id": "weak-delivery-cost-01",
+      "data": {
+        "id": "weak-delivery-cost-01",
+        "type": "cost",
+        "timestamp": "2026-11-01T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "currency_code": "USD",
+          "item_cost": "45.00",
+          "shipping_cost": "8.00"
+        }
+      }
+    }
+  ]
+}
