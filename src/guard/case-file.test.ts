@@ -280,3 +280,25 @@ it.each([
   const strong = file(); strong.summary = text;
   expect(checkCaseFile(strong, sources).accepted).toBe(false);
 });
+
+
+it('accepts the live $10 case with correctly cited negative outcomes written before the currency symbol', async () => {
+  const { default: live } = await import('./__fixtures__/live-strong.json');
+  expect(checkCaseFile(live.caseFile as CaseFile, live.sources, [SYSTEM_PROMPT])).toMatchObject({ accepted: true, reasons: [] });
+});
+it.each(['-$43.00', '−$43.00', '$-43.00', 'USD -43.00', '-43.00 USD'])('accepts a supported signed outcome: %s', figure => {
+  const liveSources = structuredClone(sources);
+  liveSources[0]!.data = { currency_code: 'USD', value: '10.00' };
+  const copy = file();
+  copy.claims = [{ text: `A win leaves ${figure} after costs.`, citations: ['dispute.dispute_amount', 'demo-cost'] }];
+  expect(checkCaseFile(copy, liveSources)).toMatchObject({ accepted: true, reasons: [] });
+  copy.claims[0]!.citations = ['demo-cost'];
+  expect(checkCaseFile(copy, liveSources).accepted).toBe(false);
+});
+it.each(['$43.00', '-$44.00', '-€43.00', '−$44.00'])('rejects an unsupported signed outcome: %s', figure => {
+  const liveSources = structuredClone(sources);
+  liveSources[0]!.data = { currency_code: 'USD', value: '10.00' };
+  const copy = file();
+  copy.claims = [{ text: `A win leaves ${figure} after costs.`, citations: ['dispute.dispute_amount', 'demo-cost'] }];
+  expect(checkCaseFile(copy, liveSources).accepted).toBe(false);
+});

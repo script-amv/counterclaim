@@ -52,7 +52,7 @@ describe('sandbox evidence packet', () => {
   });
   it('maps signed delivery and tracking using the supplied schema', () => {
     expect(evidenceInput('MERCHANDISE_OR_SERVICE_NOT_RECEIVED', file(), sources, 'evidence.pdf')).toEqual({ evidences: [{
-      evidence_type: 'PROOF_OF_DELIVERY_SIGNATURE', notes: 'Demo seller note for review.', documents: [{ name: 'evidence.pdf' }],
+      evidence_type: 'PROOF_OF_FULFILLMENT', notes: 'Demo seller note for review.', documents: [{ name: 'evidence.pdf' }],
       evidence_info: { tracking_info: [{ carrier_name: 'OTHER', carrier_name_other: 'DEMO CARRIER', tracking_number: 'DEMO-TRACK-123' }] },
     }] });
     const f = file(); f.recommendation.action = 'refund';

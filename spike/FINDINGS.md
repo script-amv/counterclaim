@@ -61,3 +61,9 @@ Other documented integration traps:
 ## Local verification
 
 Run `node spike/run-mock.mjs`. The runner starts an ephemeral loopback server, exercises every CLI command, simulates browser actions explicitly, validates multipart metadata/file association and tracking, asserts `RESOLVED_SELLER_FAVOUR`, tests premature/resolved actions and production-host rejection, and checks credential/token canaries never appear in output. Transcript: `output/mock-run.txt`. Tested with Node v26.13.0; implementation targets Node 20+ built-in fetch/FormData/Blob. Node 20 itself was not available for a separate runtime run. No npm packages are needed.
+
+## Confirmed live sandbox result — 2026-11-05
+
+At `INQUIRY` for `MERCHANDISE_OR_SERVICE_NOT_RECEIVED`, `PROOF_OF_DELIVERY_SIGNATURE` was refused with HTTP 400 `EVIDENCE_TYPE_IS_NOT_ALLOWED`. `PROOF_OF_FULFILLMENT` with tracking information was accepted, and the dispute moved to `UNDER_REVIEW`. This confirms the observed transition for that submission, not a guarantee for every case.
+
+A newly filed dispute took about four minutes to appear in the list endpoint, although it was readable by ID immediately. List visibility can lag direct lookup; this observation is not a visibility SLA.

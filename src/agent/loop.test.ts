@@ -59,3 +59,33 @@ it('terminates repeated read calls at the turn limit', async () => {
   const result = await investigate(store, model, dispute.dispute_id, { maxTurns: 2 });
   expect(result.run.status).toBe('failed'); expect(model.messages).toHaveLength(2); store.close();
 });
+
+it.each(scenarioIds)('investigates and rechecks a live %s case using derived evidence', async scenario => {
+  const { CaseService } = await import('../api/service');
+  const { detailView } = await import('../api/views');
+  const store = new CaseStore(':memory:');
+  try {
+    const dispute = {
+      dispute_id: 'PP-LIVE-10', status: 'WAITING_FOR_SELLER_RESPONSE',
+      create_time: '2026-11-05T22:46:40.000Z',
+      dispute_amount: { currency_code: 'USD', value: '10.00' },
+      disputed_transactions: [{ create_time: '2026-11-05T10:40:24.000Z', items: [{ item_name: 'Live item' }] }],
+    };
+    store.save(dispute); store.assignScenario(dispute.dispute_id, scenario);
+    const output = draft(scenario);
+    output.timeline = [];
+    output.summary = scenario === 'low-value' ? 'A win leaves $5.83 after costs; a loss leaves -$4.17.' : 'A win leaves $5.58 after costs; a loss leaves -$4.42.';
+    output.claims = [{ text: 'The order was for Live item at $10.00.', citations: [`${scenario}-order-01`] }];
+    if (scenario === 'low-value') output.recommendation.offer_amount = { currency_code: 'USD', value: '5.00' };
+    const { run, version } = await investigate(store, scripted(scenario, output), dispute.dispute_id);
+    expect(run.status, JSON.stringify(version?.guard)).toBe('completed');
+    expect(version?.guard).toMatchObject({ accepted: true, reasons: [] });
+    expect(version?.caseFile.recommendation.action).toBe(scenario === 'weak-delivery' ? 'refund' : scenario === 'low-value' ? 'offer' : 'fight');
+    const order = run.sources.find(s => s.id === `${scenario}-order-01`)!.data;
+    expect(order).toMatchObject({ timestamp: '2026-11-05T10:40:24.000Z', content: { amount: '10.00', item: 'Live item' } });
+    expect(detailView(store, dispute.dispute_id).computed.money).toMatchObject({ total_recorded_costs: scenario === 'low-value' ? '4.17' : '4.42' });
+    const noNetwork = async () => { throw new Error('No network allowed'); };
+    const service = new CaseService(store, { getDispute: noNetwork, provideEvidence: noNetwork, makeOffer: noNetwork, acceptClaim: noNetwork });
+    expect(service.edit(dispute.dispute_id, version!.caseFile, version!.id).guard).toMatchObject({ accepted: true, reasons: [] });
+  } finally { store.close(); }
+});

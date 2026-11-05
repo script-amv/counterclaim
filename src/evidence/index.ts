@@ -42,7 +42,7 @@ export function evidenceInput(reason: string | undefined, file: CaseFile, source
   });
   if (tracking.length > 10) throw new Error('Too many shipment tracking records (maximum 10)');
   const delivery = file.recommendation.action === 'fight' && reason === 'MERCHANDISE_OR_SERVICE_NOT_RECEIVED' && shipping.length > 0;
-  const type = delivery ? shipping.some(s => s.signed) ? 'PROOF_OF_DELIVERY_SIGNATURE' : 'PROOF_OF_FULFILLMENT' : 'OTHER';
+  const type = delivery ? 'PROOF_OF_FULFILLMENT' : 'OTHER';
   return { evidences: [{ evidence_type: type, notes: file.evidence_draft.seller_note, documents: [{ name: filename }],
     ...(tracking.length ? { evidence_info: { tracking_info: tracking } } : {}),
   }] };

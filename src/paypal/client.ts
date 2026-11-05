@@ -1,3 +1,4 @@
+import { sanitizePayPalError, type SafePayPalError } from './error-details';
 import { z } from 'zod';
 import {
   actionResponseSchema, disputeListSchema, disputeSchema, orderSchema,
@@ -14,12 +15,14 @@ export class PayPalError extends Error {
   readonly status: number;
   readonly debug_id: string | undefined;
   private readonly refused: boolean;
-  constructor(status: number, name: string, debugId?: string, refused = false) {
-    super(`PayPal request failed (HTTP ${status})`);
+  readonly safeDetails: SafePayPalError;
+  constructor(status: number, name: string, debugId?: string, refused = false, details: unknown = {}) {
+    super(name === 'INVALID_RESPONSE' ? 'Invalid PayPal response' : `PayPal request failed (HTTP ${status})`);
     this.name = safeCode(name, 'PAYPAL_ERROR');
     this.status = status;
     this.debug_id = debugId ? safeCode(debugId, '') || undefined : undefined;
     this.refused = refused;
+    this.safeDetails = sanitizePayPalError(status, { ...(details as object), name: this.name }, this.debug_id);
   }
   isActionNotAllowed() { return this.refused; }
 }
@@ -54,7 +57,7 @@ export class PayPalClient {
     this.now = options.now ?? Date.now;
   }
 
-  private async transport(path: string, init: RequestInit, read = false): Promise<unknown> {
+  private async transport(path: string, init: RequestInit, read = false): Promise<{ data: unknown; status: number }> {
     let response: Response | undefined;
     let data: unknown;
     for (let attempt = 0; attempt < (read ? 2 : 1); attempt++) {
@@ -75,7 +78,7 @@ export class PayPalClient {
         // Fetch resolves at headers; body download can still fail or time out.
         // Invalid JSON is a contract error, not a transient network error.
         if (read && attempt === 0 && response.ok && !(error instanceof SyntaxError)) continue;
-        if (response.ok) throw new Error('Invalid PayPal response');
+        if (response.ok) throw new PayPalError(response.status, 'INVALID_RESPONSE');
         data = {};
       }
       break;
@@ -88,14 +91,14 @@ export class PayPalClient {
       const error = parsed.success ? parsed.data : {};
       throw new PayPalError(response.status, error.name ?? 'PAYPAL_ERROR',
         response.headers.get('paypal-debug-id') ?? error.debug_id,
-        error.name === REFUSAL || error.details?.some(d => d.issue === REFUSAL));
+        error.name === REFUSAL || error.details?.some(d => d.issue === REFUSAL), data);
     }
-    return data;
+    return { data, status: response.status };
   }
 
-  private validate<T>(schema: z.ZodType<T>, data: unknown): T {
-    const parsed = schema.safeParse(data);
-    if (!parsed.success) throw new Error('Invalid PayPal response');
+  private validate<T>(schema: z.ZodType<T>, response: { data: unknown; status: number }): T {
+    const parsed = schema.safeParse(response.data);
+    if (!parsed.success) throw new PayPalError(response.status, 'INVALID_RESPONSE');
     return parsed.data;
   }
 
@@ -166,16 +169,7 @@ export class PayPalClient {
     return this.request(`${this.disputePath(id)}/${action}`, actionResponseSchema, body);
   }
   provideEvidence(id: string, input: EvidenceInput, file: File) {
-    if (!file.size || file.size >= 10_000_000 || !['application/pdf', 'image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
-      throw new Error('Evidence must be a supported nonempty file smaller than 10 MB');
-    }
-    if (!input.evidences.some(e => e.documents?.some(d => d.name === file.name))) {
-      throw new Error('Evidence document name must match the attached file');
-    }
-    const form = new FormData();
-    form.append('input', new Blob([JSON.stringify(input)], { type: 'application/json' }), 'input.json');
-    form.append('evidence-file', file, file.name);
-    return this.write(id, 'provide-evidence', form);
+    return this.write(id, 'provide-evidence', buildEvidenceForm(input, file));
   }
   escalate(id: string, input: { note?: string; buyer_escalation_reason?: string }) { return this.write(id, 'escalate', input); }
   acceptClaim(id: string, input: { note?: string; [key: string]: unknown }) { return this.write(id, 'accept-claim', input); }
@@ -206,4 +200,18 @@ export class PayPalClient {
     const result = await this.request('/v1/notifications/verify-webhook-signature', verificationSchema, body);
     return result.verification_status === 'SUCCESS';
   }
+}
+
+/** Shared by app transport and offline diagnostic shape inspection. */
+export function buildEvidenceForm(input: EvidenceInput, file: File): FormData {
+  if (!file.size || file.size >= 10_000_000 || !['application/pdf', 'image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
+    throw new Error('Evidence must be a supported nonempty file smaller than 10 MB');
+  }
+  if (!input.evidences.some(e => e.documents?.some(d => d.name === file.name))) {
+    throw new Error('Evidence document name must match the attached file');
+  }
+  const form = new FormData();
+  form.append('input', new Blob([JSON.stringify(input)], { type: 'application/json' }), 'input.json');
+  form.append('evidence-file', file, file.name);
+  return form;
 }

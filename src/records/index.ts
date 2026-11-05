@@ -1,4 +1,6 @@
 import type { Dispute } from '../paypal/schemas';
+import { units } from '../agent/money';
+import { containsPrivateText, privateValues } from '../api/privacy';
 
 export type ScenarioId = 'strong-delivery' | 'weak-delivery' | 'low-value' | 'injection';
 export const scenarioIds: ScenarioId[] = ['strong-delivery', 'weak-delivery', 'low-value', 'injection'];
@@ -60,8 +62,49 @@ export const scenarios: Record<ScenarioId, SellerRecord[]> = {
 };
 
 /** An unassigned dispute has no seller records. Return copies to preserve fixture integrity. */
-export function recordsForScenario(scenario: ScenarioId | undefined): SellerRecord[] {
-  return scenario ? structuredClone(scenarios[scenario]) : [];
+export function recordsForScenario(scenario: ScenarioId | undefined, dispute?: Dispute): SellerRecord[] {
+  if (!scenario) return [];
+  const records = structuredClone(scenarios[scenario]);
+  // Explicit offline fixtures retain their recorded evidence and citation dates.
+  if (!dispute || dispute.demo_data === true) return records;
+  const amount = dispute.dispute_amount;
+  const created = Date.parse(dispute.create_time ?? '');
+  if (!amount || !Number.isFinite(created)) return [];
+  const transactions = Array.isArray(dispute.disputed_transactions) ? dispute.disputed_transactions : [];
+  const transaction = transactions.find(t => t && typeof t === 'object') as Record<string, unknown> | undefined;
+  const transactionTime = typeof transaction?.create_time === 'string' ? Date.parse(transaction.create_time) : NaN;
+  const ordered = Number.isFinite(transactionTime) && transactionTime < created - 4
+    ? transactionTime : created - 4 * 86400000;
+  const items = Array.isArray(transaction?.items) ? transaction.items : [];
+  const label = items.find(i => i && typeof i.item_name === 'string' && i.item_name.trim())?.item_name ?? 'Sandbox demo item';
+  const item = containsPrivateText(label, privateValues(dispute)) ? 'Sandbox order item' : label;
+  // Round proportional demo costs to the currency's minor unit with integer math.
+  let scaled: (numerator: bigint, denominator: bigint) => string;
+  try {
+    const scale = new Intl.NumberFormat('en', { style: 'currency', currency: amount.currency_code }).resolvedOptions().maximumFractionDigits!;
+    const value = units(amount.value);
+    scaled = (numerator, denominator) => {
+      const divisor = denominator * 1000n;
+      const rounded = (value * numerator * 10n ** BigInt(scale) + divisor / 2n) / divisor;
+      const digits = rounded.toString().padStart(scale + 1, '0');
+      return scale ? `${digits.slice(0, -scale)}.${digits.slice(-scale)}` : digits;
+    };
+    // Validate precision and currency before returning any synthetic proof.
+    scaled(1n, 2n);
+  } catch { return []; }
+  const low = scenario === 'low-value';
+  const offsets = { order: 0, shipment: 1, tracking_event: 2, customer_message: 3, policy: 0, cost: 0 };
+  for (const record of records) {
+    record.timestamp = new Date(ordered + Math.floor((created - ordered) * offsets[record.type] / 4)).toISOString();
+    if (record.type === 'order') Object.assign(record.content, { amount: amount.value, currency_code: amount.currency_code, item });
+    if (record.type === 'cost') Object.assign(record.content, {
+      currency_code: amount.currency_code,
+      item_cost: scaled(low ? 3n : 45n, low ? 12n : 120n),
+      shipping_cost: scaled(low ? 2n : 8n, low ? 12n : 120n),
+    });
+    if (record.type === 'customer_message' && low) record.content.text = `The parcel has not arrived. I am willing to settle with a partial refund of ${amount.currency_code} ${scaled(1n, 2n)}.`;
+  }
+  return records;
 }
 
 /** Offline/evaluation input only; this does not create a PayPal dispute. */

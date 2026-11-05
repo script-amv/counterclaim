@@ -42,6 +42,7 @@ export interface SubmissionAttempt {
   id: string; disputeId: string; versionId: string; approvalId: string; stage: string;
   action: SubmissionAction; contentHash: string; status: 'submitting' | 'submitted' | 'failed' | 'unknown';
   startedAt: string; endedAt?: string;
+  paypalError?: import('../paypal/error-details').SafePayPalError;
 }
 
 export interface SubmissionContent {

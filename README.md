@@ -106,6 +106,26 @@ Vitest injects fake providers and blocks external fetch. Coverage includes state
 
 `node spike/run-mock.mjs` exercises the earlier CLI against a local mock only. `npm run eval` is a separate opt-in **live OpenRouter** evaluation, not part of offline testing. Historical captures establish recorded behavior, not reproducibility on a future provider run. These are reproduction commands, not a claim that they were rerun while preparing these materials.
 
+### Troubleshooting evidence submission
+
+Inspect an existing frozen approval using the app's database, without credentials or network:
+
+```sh
+node scripts/run-ts.mjs scripts/diagnose-submit.ts '<dispute-id>' '<approval-id>' --dry-run
+```
+
+Supply environment variables externally, including `DATABASE_PATH` for a nondefault database. The diagnostic never loads dotenv or spike files. Dry run prints only the redacted request shape, part sizes and note lengths. It reads the frozen approval without regenerating the packet or changing approved content.
+
+For an intentional live sandbox submission, supply sandbox credentials externally and omit `--dry-run`:
+
+```sh
+node scripts/run-ts.mjs scripts/diagnose-submit.ts '<dispute-id>' '<approval-id>'
+```
+
+This uses the app's submission service and multipart builder for one provide-evidence write, without write retries. OAuth and fresh reads are additional calls. Approval, privacy, current-action and duplicate/uncertain-attempt guards remain active. The attempt is persisted and the dispute reconciled; output includes HTTP status and safe error fields. Failed or unknown outcomes exit nonzero. An unknown outcome locks further sending and requires manual inspection before retrying. A successful diagnostic is a real submission; do not submit it again from the UI.
+
+To change the evidence type or packet, review and approve a new version and use its new approval ID; an old approval retains its original payload. Use the returned structured error to distinguish evidence/tracking validation, state/action and permission failures. Arbitrary response prose and request values are redacted from diagnostics.
+
 ## Tools used
 
 Next.js, React, TypeScript, Node `node:sqlite`, PayPal sandbox REST APIs, OpenRouter, AG Grid Community, Zod, `pdf-lib`, Vitest, Playwright and ESLint. OpenAI Codex assisted with submission documentation and source research. The UI bundles Fraunces and DM Sans under their included SIL Open Font License notices. Render is the supplied hosting target, not a claimed deployed integration.

@@ -3,7 +3,7 @@ import { decodedPacketText } from '../evidence/test-text';
 import { afterEach, beforeEach, it, expect, vi } from 'vitest';
 import { CaseStore } from '../cases/storage';
 import { CaseService } from './service';
-import { syntheticDispute } from '../records';
+import { scenarios, syntheticDispute } from '../records';
 import { scripted, draft } from '../agent/test-fixtures';
 import { investigate } from '../agent/loop';
 const runtime = vi.hoisted(() => ({ store: undefined as unknown as CaseStore, service: undefined as unknown as CaseService, model: vi.fn() }));
@@ -25,6 +25,17 @@ beforeEach(() => {
   runtime.model.mockReset().mockImplementation(() => scripted('strong-delivery')); vi.stubEnv('OPERATOR_CODE', 'test-code');
 });
 afterEach(() => { runtime.store.close(); vi.unstubAllEnvs(); });
+it.each(['Gift for buyer@example.invalid', 'Gift for Buyer Sensitive Name'])('filters private queue titles independently of derived records: %s', item => {
+  const order = scenarios['strong-delivery'].find(r => r.type === 'order')!;
+  const original = order.content.item;
+  // Offline records bypass live derivation, so the public boundary must check them itself.
+  order.content.item = item;
+  return queue().then(async response => {
+    const output = await response.json();
+    expect(output.cases[0].title).toBe('Sandbox order item · Order STR-DEL');
+    expect(JSON.stringify(output)).not.toContain(item);
+  }).finally(() => { order.content.item = original; });
+});
 it('all public read responses and mutation responses omit buyer identity', async () => {
   const investigated = await run(request(), context()); expect(investigated.status).toBe(200); const data = await investigated.json();
   const edited = await edit(request('PUT', { caseFile: draft('strong-delivery'), baseVersionId: runtime.service.latest(d.dispute_id).id }), context()); expect(edited.status).toBe(200); const v = await edited.json();

@@ -11,9 +11,9 @@ function moneyMentions(text: string): { code: string; value: string; start: numb
   const names: Record<string, string> = { '$':'USD', '€':'EUR', '£':'GBP', '¥':'JPY', dollar:'USD', dollars:'USD', euro:'EUR', euros:'EUR', pound:'GBP', pounds:'GBP', yen:'JPY' };
   const codes = [...currencyCodes].join('|');
   const amount = '([+\\-−]?\\d(?:[\\d,]*\\d)?(?:\\.\\d+)?)';
-  const prefix = new RegExp(`(?:\\b(${codes})\\s*|([$€£¥])\\s*)${amount}`, 'gi');
+  const prefix = new RegExp(`([+\\-−]?)(?:\\b(${codes})\\s*|([$€£¥])\\s*)${amount}`, 'gi');
   const suffix = new RegExp(`(?<![\\w.,])${amount}\\s*(dollars?|euros?|pounds?|yen|${codes})\\b`, 'gi');
-  for (const m of text.matchAll(prefix)) out.push({ code: m[1]?.toUpperCase() ?? names[m[2]!]!, value: m[3]!.replaceAll(',', '').replace('−', '-'), start: m.index!, end: m.index! + m[0].length });
+  for (const m of text.matchAll(prefix)) out.push({ code: m[2]?.toUpperCase() ?? names[m[3]!]!, value: `${m[1]}${m[4]}`.replaceAll(',', '').replaceAll('−', '-'), start: m.index!, end: m.index! + m[0].length });
   for (const m of text.matchAll(suffix)) out.push({ code: names[m[2]!.toLowerCase()] ?? m[2]!.toUpperCase(), value: m[1]!.replaceAll(',', '').replace('−', '-'), start: m.index!, end: m.index! + m[0].length });
   return out;
 }

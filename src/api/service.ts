@@ -1,3 +1,4 @@
+import { safePayPalError } from '../paypal/errors';
 import { randomUUID } from 'node:crypto';
 import { trustedFacts, mergeComputedGaps } from '../agent/facts';
 import { recordsForScenario } from '../records';
@@ -21,7 +22,10 @@ export interface ActionClient {
 export class CaseService {
   constructor(readonly store: CaseStore, private paypal: ActionClient) {}
   latest(id: string): CaseFileVersion { const v = this.store.versions(id).at(-1); if (!v) throw new ApiError(409, 'Investigate or create a case file first'); return v; }
-  private facts(id: string) { return trustedFacts(this.store.get(id)!, recordsForScenario(this.store.scenario(id))); }
+  private facts(id: string) {
+    const dispute = this.store.get(id)!;
+    return trustedFacts(dispute, recordsForScenario(this.store.scenario(id), dispute));
+  }
   edit(id: string, input: unknown, baseVersionId: string) {
     return this.store.transaction(() => {
       this.store.assertMutable(id);
@@ -85,6 +89,7 @@ export class CaseService {
       attempt.status = 'submitted';
     } catch (error) {
       // A timeout, body interruption or 5xx cannot establish whether the write was applied.
+      attempt.paypalError = safePayPalError(error, casePrivateValues(this.store, id));
       attempt.status = error instanceof PayPalError && error.status >= 400 && error.status < 500 && error.status !== 408 ? 'failed' : 'unknown';
     }
     attempt.endedAt = new Date().toISOString(); this.store.saveAttempt(attempt);

@@ -15,7 +15,7 @@ export function publicDispute(d: Dispute) {
 
 // Text fields are untrusted. Reject recognizable private source values rather than echo them.
 export function privateValues(value: unknown, key = ''): string[] {
-  if (typeof value === 'string') return /email|name|address|secret|token|password|prompt/i.test(key) && value.trim().length > 0 ? [value] : [];
+  if (typeof value === 'string') return key !== 'item_name' && /email|name|address|secret|token|password|prompt/i.test(key) && value.trim().length > 0 ? [value] : [];
   if (!value || typeof value !== 'object') return [];
   return Object.entries(value).flatMap(([k, v]) => privateValues(v, k));
 }

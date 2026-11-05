@@ -1,4 +1,5 @@
 "use client";
+import { submissionFailureReason } from '../paypal/error-details';
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type {
@@ -264,6 +265,8 @@ export function CaseWorkspace({
               ? "The connection ended without confirmation. PayPal may have received this response. Sending is locked; check the case in PayPal before any retry."
               : `${actionNames[attempt.action]} / ${date(attempt.startedAt)}. This is the saved attempt state, not a promise about the outcome.`}
           </p>
+          {['failed', 'unknown'].includes(attempt.status) && <p>{submissionFailureReason(attempt.paypalError)}</p>}
+          {attempt.paypalError && <small>HTTP {attempt.paypalError.status} · {attempt.paypalError.details.map(d => d.issue).filter(Boolean).join(', ') || attempt.paypalError.name}{attempt.paypalError.debug_id ? ` · Reference: ${attempt.paypalError.debug_id}` : ''}</small>}
         </div>
       )}
       {resolved && (

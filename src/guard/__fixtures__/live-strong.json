@@ -1,0 +1,246 @@
+{
+  "caseFile": {
+    "summary": "The buyer says the item was not received and opened an initial dispute for $10.00. Seller records show the order was shipped and the carrier scan reports delivery to the order address with a signature. Recorded item and shipping costs total $53.00, so after costs a win leaves -$43.00 and a loss leaves -$53.00.",
+    "timeline": [
+      {
+        "date": "2026-11-01T10:00:00.000Z",
+        "event": "The buyer ordered one demo desk lamp for $120.00 and the order is marked completed.",
+        "citations": [
+          "strong-delivery-order-01"
+        ]
+      },
+      {
+        "date": "2026-11-02T10:00:00.000Z",
+        "event": "The seller shipped the order with a demo carrier. The shipping address matches the order. The delivery was signed for.",
+        "citations": [
+          "strong-delivery-shipment-01"
+        ]
+      },
+      {
+        "date": "2026-11-03T10:00:00.000Z",
+        "event": "A carrier tracking scan shows the parcel delivered, with a signed scan and an address reference matching the order.",
+        "citations": [
+          "strong-delivery-tracking_event-01"
+        ]
+      },
+      {
+        "date": "2026-11-04T10:00:00.000Z",
+        "event": "The buyer messaged that the parcel has not arrived and asked the seller to check the delivery.",
+        "citations": [
+          "strong-delivery-customer_message-01"
+        ]
+      }
+    ],
+    "claims": [
+      {
+        "text": "The order was for one demo desk lamp at $120.00 and is marked completed.",
+        "citations": [
+          "strong-delivery-order-01"
+        ]
+      },
+      {
+        "text": "Carrier records show the parcel delivered to the order address with a signature.",
+        "citations": [
+          "strong-delivery-shipment-01",
+          "strong-delivery-tracking_event-01"
+        ]
+      },
+      {
+        "text": "The buyer states the parcel has not arrived.",
+        "citations": [
+          "strong-delivery-customer_message-01"
+        ]
+      },
+      {
+        "text": "The disputed amount is $10.00. Recorded item and shipping costs total $53.00, so after costs a win leaves -$43.00 and a loss leaves -$53.00.",
+        "citations": [
+          "dispute.dispute_amount",
+          "strong-delivery-cost-01"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "missing": "Verified PayPal Orders lookup unavailable",
+        "why_it_matters": "The PayPal order could not be verified. The seller records are demo evidence only."
+      }
+    ],
+    "recommendation": {
+      "action": "fight",
+      "reasoning": "The carrier scan shows delivery, the delivery was signed for, and the shipping address matches the order. That evidence answers a claim that the item never arrived.",
+      "confidence": {
+        "level": "medium",
+        "reason": "Delivery, signature and address match are all recorded, but the PayPal order lookup could not be verified and the buyer still reports non-arrival."
+      }
+    },
+    "evidence_draft": {
+      "seller_note": "The order was shipped and the carrier scan shows it delivered to the address on the order. The delivery was signed for and the shipping address matches the order. The buyer messaged that the parcel has not arrived, and I am providing the carrier delivery and signature records for review.",
+      "attach_records": [
+        "strong-delivery-order-01",
+        "strong-delivery-shipment-01",
+        "strong-delivery-tracking_event-01",
+        "strong-delivery-customer_message-01",
+        "strong-delivery-cost-01"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "dispute.dispute_id",
+      "data": "PP-R-CNR-10196701"
+    },
+    {
+      "id": "dispute.status",
+      "data": "WAITING_FOR_SELLER_RESPONSE"
+    },
+    {
+      "id": "dispute.reason",
+      "data": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED"
+    },
+    {
+      "id": "dispute.dispute_life_cycle_stage",
+      "data": "INQUIRY"
+    },
+    {
+      "id": "dispute.create_time",
+      "data": "2026-11-05T22:46:40.072Z"
+    },
+    {
+      "id": "dispute.update_time",
+      "data": "2026-11-05T22:50:13.947Z"
+    },
+    {
+      "id": "dispute.seller_response_due_date",
+      "data": "2026-11-25T22:46:40.072Z"
+    },
+    {
+      "id": "dispute.dispute_amount",
+      "data": {
+        "currency_code": "USD",
+        "value": "10.00"
+      }
+    },
+    {
+      "id": "dispute.links",
+      "data": [
+        {
+          "rel": "self",
+          "href": "sandbox-action",
+          "method": "GET"
+        },
+        {
+          "rel": "provide_evidence",
+          "href": "sandbox-action",
+          "method": "POST"
+        },
+        {
+          "rel": "accept_claim",
+          "href": "sandbox-action",
+          "method": "POST"
+        },
+        {
+          "rel": "escalate",
+          "href": "sandbox-action",
+          "method": "POST"
+        },
+        {
+          "rel": "send_message",
+          "href": "sandbox-action",
+          "method": "POST"
+        },
+        {
+          "rel": "make_offer",
+          "href": "sandbox-action",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "id": "strong-delivery-order-01",
+      "data": {
+        "id": "strong-delivery-order-01",
+        "type": "order",
+        "timestamp": "2026-11-01T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "order_id": "DEMO-ORDER-strong-delivery",
+          "status": "COMPLETED",
+          "currency_code": "USD",
+          "amount": "120.00",
+          "item": "Demo desk lamp",
+          "quantity": 1,
+          "delivery_address_reference": "DEMO-ADDRESS-REFERENCE"
+        }
+      }
+    },
+    {
+      "id": "strong-delivery-shipment-01",
+      "data": {
+        "id": "strong-delivery-shipment-01",
+        "type": "shipment",
+        "timestamp": "2026-11-02T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "tracking_number": "DEMO-TRACKING-strong-delivery",
+          "carrier_name": "DEMO CARRIER",
+          "address_matches": true,
+          "signed": true,
+          "status": "DELIVERED",
+          "proof": "Demo delivery scan and signature confirmation recorded for the order address."
+        }
+      }
+    },
+    {
+      "id": "strong-delivery-tracking_event-01",
+      "data": {
+        "id": "strong-delivery-tracking_event-01",
+        "type": "tracking_event",
+        "timestamp": "2026-11-03T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "tracking_number": "DEMO-TRACKING-strong-delivery",
+          "status": "DELIVERED",
+          "detail": "Demo signed delivery scan; address reference matches order."
+        }
+      }
+    },
+    {
+      "id": "strong-delivery-customer_message-01",
+      "data": {
+        "id": "strong-delivery-customer_message-01",
+        "type": "customer_message",
+        "timestamp": "2026-11-04T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "text": "The parcel has not arrived. Please check the delivery."
+        }
+      }
+    },
+    {
+      "id": "strong-delivery-policy-01",
+      "data": {
+        "id": "strong-delivery-policy-01",
+        "type": "policy",
+        "timestamp": "2026-11-01T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "text": "Demo policy: investigate delivery issues using carrier scans. A seller may agree to a refund or settlement. This synthetic store policy does not establish PayPal eligibility or legal rights."
+        }
+      }
+    },
+    {
+      "id": "strong-delivery-cost-01",
+      "data": {
+        "id": "strong-delivery-cost-01",
+        "type": "cost",
+        "timestamp": "2026-11-01T10:00:00.000Z",
+        "source": "Sandbox demo seller store \u2014 synthetic data",
+        "content": {
+          "currency_code": "USD",
+          "item_cost": "45.00",
+          "shipping_cost": "8.00"
+        }
+      }
+    }
+  ]
+}

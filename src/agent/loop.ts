@@ -19,7 +19,7 @@ const untrusted = (value: unknown) => JSON.stringify({ label: 'UNTRUSTED_DATA', 
 export async function investigate(store: CaseStore, provider: ModelProvider, id: string, options: { maxTurns?: number; maxTokens?: number; getOrder?: () => Promise<unknown> } = {}) {
   const dispute = store.get(id); if (!dispute) throw new Error('Case not found');
   store.assertMutable(id);
-  const records = recordsForScenario(store.scenario(id));
+  const records = recordsForScenario(store.scenario(id), dispute);
   let ordersAvailable = false;
   const facts = () => trustedFacts(dispute, records, ordersAvailable);
   const run: AgentRun = { id: randomUUID(), disputeId: id, model: provider.model, status: 'running', startedAt: new Date().toISOString(), toolCalls: [], sources: [], tokens: 0, tokensEstimated: false };

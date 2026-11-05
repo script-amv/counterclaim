@@ -113,3 +113,19 @@ it('blocks version creation by an investigation already running when submission 
     finishWrite(); await submission;
   } finally { s.store.close(); }
 });
+
+it.each([422, 408, 503])('persists safe PayPal diagnostics for HTTP %s and returns them through the case API', async status => {
+  const { detailView } = await import('../api/views');
+  const s = await setup();
+  try {
+    const a = await s.service.approve(s.dispute.dispute_id, s.version.id, s.store.snapshotFingerprint(s.dispute.dispute_id));
+    s.paypal.provideEvidence.mockRejectedValue(new PayPalError(status, 'UNPROCESSABLE_ENTITY', 'debug123', false, {
+      message: 'The requested action could not be performed.', details: [{ issue: 'MISSING_TRACKING_INFO', field: '/evidences/0/evidence_info/tracking_info', description: 'The tracking number and carrier name are missing.' }],
+    }));
+    const result = await s.service.submit(s.dispute.dispute_id, a.id);
+    expect(result.status).toBe(status === 422 ? 'failed' : 'unknown');
+    expect(result.paypalError).toMatchObject({ status, debug_id: 'debug123', details: [{ issue: 'MISSING_TRACKING_INFO' }] });
+    expect(s.store.attempts(s.dispute.dispute_id)[0]?.paypalError).toEqual(result.paypalError);
+    expect(detailView(s.store, s.dispute.dispute_id).attempts[0]?.paypalError).toEqual(result.paypalError);
+  } finally { s.store.close(); }
+});
