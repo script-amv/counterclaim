@@ -1,123 +1,123 @@
-# Counterclaim — stage 3
+# Counterclaim
 
-A sandbox-only seller dispute backend: PayPal sync, a sourced AI case file, deterministic guards, approval, PDF evidence and guarded actions. The seller interface includes an AG Grid queue, cited case files, a separate approval step and an honest explanation of the method. Every seeded seller record and generated packet is labelled sandbox demo data. The app does not promise wins.
+Counterclaim helps a small online seller decide how to answer a PayPal dispute by assembling a case file with inspectable sources. It can recommend fighting, offering a settlement, or accepting the claim—including “Don’t fight this one” when the evidence is weak. The seller reviews the response, approves a specific version, inspects its evidence PDF where applicable, and separately chooses whether to send it to the PayPal sandbox.
 
-## Run and verify
+**Hosted demo:** [REPLACE WITH HOSTED DEMO URL](https://COUNTERCLAIM-DEMO-URL.example) — placeholder, not a deployed service.
 
-Requires Node 26 (developed on 26.13.0), including built-in `node:sqlite`.
+## Try it as a judge
+
+Open the demo queue at `/`; no account or operator code is needed to read cases. Open **REPLAY-weak-delivery** for the advice against fighting, **REPLAY-strong-delivery** for cited delivery claims, **REPLAY-low-value** for a settlement offer, and **REPLAY-injection** for a customer message containing hostile instructions. Select a citation to open its source, read the missing-proof gaps and money outcomes, then inspect the tool activity and guard results. `/how-it-works` explains the method.
+
+Open `PP-R-ZAT-10196609` for the reconstructed real sandbox timeline. Replays cannot be investigated, edited, approved or sent—even with an operator code. The approval page explains the sending contract, but an approved PDF is available only for an eligible, approved non-replay case. Visitor access does not include credentials or write access.
+
+## What is real, and what is demo data?
+
+| Part | Provenance and boundary |
+| --- | --- |
+| PayPal integration | REST client is fixed to the real PayPal **sandbox** origin. It supports dispute reads, evidence, offers, claim acceptance and webhook signature verification. There is no production mode. |
+| Recorded sandbox case | The design records a real Nov 5 payment-to-resolution run. Eleven snapshots reconstruct sanitized state summaries; they are not raw API responses. The terminal state comes from the supplied design, not a retained terminal response. [Trace provenance](src/paypal/__fixtures__/trace/README.md). |
+| Seller evidence | Orders, shipments, tracking, policies, costs and messages are synthetic demo records, not connected store or carrier data. Unassigned sandbox cases have no seller records. |
+| Replay case files | Four recorded model outputs captured Nov 5 through OpenRouter, reporting provider Mistral and zero cost, using `@preset/deepseek-mistral-vibe`. The underlying model was not reported. Current guards revalidate these outputs offline; the weak-delivery output originally hit a false positive. [Capture provenance](src/records/recorded-runs/README.md). |
+| Live investigation | An operator can explicitly investigate a non-replay case using the configured model. The model has read tools only and cannot submit. |
+
+**Sandbox settlement says nothing about real-world outcomes.** The recorded seller-favour resolution used PayPal’s sandbox adjudication control. It does not demonstrate that the evidence would win a real claim, and Counterclaim promises neither wins nor recovery rates.
+
+## Architecture
+
+One Next.js App Router service runs React, TypeScript and Node’s built-in SQLite. AG Grid Community provides the case queue; `pdf-lib` generates evidence PDFs; Zod validates API and model data.
+
+```text
+PayPal sandbox → verified webhook / authenticated sync → SQLite case history
+Seller demo records + safe dispute fields → read-only agent tools → OpenRouter
+Model case file → deterministic guards → seller review → version-bound approval
+Approved note / offer / PDF → fresh PayPal action check → sandbox REST write
+```
+
+- `src/paypal/`: sandbox-only OAuth, paginated reads, writes without automatic retries, raw webhook verification.
+- `src/cases/`: persisted snapshots, history, runs, versions, approvals, replay flags and submission attempts.
+- `src/agent/`, `src/records/`: bounded model loop and synthetic records. Tools: `get_dispute`, `get_order`, `list_records`, `read_record`. No trusted Orders ID resolver is wired into the runtime, so Orders lookup remains an explicit gap; a capture ID is not assumed to be an order ID.
+- `src/guard/`, `src/evidence/`: citation, typed-fact, privacy and repeated-instruction checks; computed gaps and strength; PDF generation. Source existence cannot prove source truth.
+- `src/api/`, `src/app/`, `src/ui/`: public privacy-filtered reads and operator-authenticated mutations. Approval hashes bind the version, action, note, amounts, metadata and exact PDF bytes. Editing clears approval. Sending re-fetches PayPal and checks the current stage and action links. Uncertain writes stay locked across restarts.
+
+Money outcomes use the disputed amount and one unambiguous same-currency item/shipping cost record. They are conditional cash outcomes, not expected value: they exclude win probability and unrecorded fees.
+
+## Run it yourself
+
+Requires **Node 26.x**, matching `package.json`, and npm. No production PayPal credentials are needed for the offline demo.
 
 ```sh
 npm ci
-npm run dev
-npm run lint
-npm run typecheck
-npm test
-npm run build
-```
-
-For a single-process host such as Render, use build command `npm ci && npm run build` and start command:
-
-```sh
-npm start -- --hostname 0.0.0.0 --port "$PORT"
-```
-
-Mount a persistent disk at `/var/data` and set `DATABASE_PATH=/var/data/counterclaim.db`. The database and its WAL files must share that persistent directory. Use one application process and preserve the disk across deploys; `./data` is not persistent on an ephemeral host.
-
-The case queue is at `/`, case files at `/cases/[id]`, approval at `/cases/[id]/approve`, and the method at `/how-it-works`. Builds use process environment only: `scripts/build-env.cjs` prevents Next from loading dotenv files during compilation. Tests disable external fetch and inject fake providers. Runtime clients initialize lazily. Next's development server retains its normal dotenv loading behavior; no development server or real provider call was run for stage 2.
-
-Configure runtime environment variables from `.env.example`:
-
-- Sandbox `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID`.
-- `DATABASE_PATH`, default `./data/counterclaim.db`.
-- `OPENROUTER_API_KEY`, and optional `OPENROUTER_MODEL`, default `deepseek/deepseek-v4-flash`.
-- `OPERATOR_CODE`, a strong operator secret. Case mutations require `Authorization: Bearer <OPERATOR_CODE>` and fail closed with 503 when unset. Public case/PDF reads do not require this secret.
-
-Also set `CRON_SECRET` in the host environment. Schedule `GET /api/cron/sync` with `Authorization: Bearer <CRON_SECRET>`; unset means disabled (503). No scheduler is provisioned here. Verified PayPal webhooks reconcile `resource.dispute_id`; original JSON text is preserved inside the verification request. Supported events are `CUSTOMER.DISPUTE.CREATED`, `.UPDATED`, `.RESOLVED`.
-
-## Offline interface demo
-
-```sh
 npm run seed-demo
 npm run dev:offline
 ```
 
-The offline launcher disables dotenv loading and blocks remote fetch. Seeding uses the local database only: four synthetic scenarios, authored case files checked by the real deterministic guard and strength calculation, plus eleven reconstructed snapshots of recorded case `PP-R-ZAT-10196609`. It is idempotent and never overwrites an existing case. Replay provenance persists in SQLite; writes are disabled in both UI and service, and polling/webhooks skip replay IDs before contacting PayPal. Replay analysis is authored offline, not attributed to a model run. Recorded trace provenance and reconstructed timestamps are disclosed in the case.
+Open `http://localhost:3000`. Seeding imports four recorded model replays and the reconstructed sandbox timeline into `./data/counterclaim.db`, revalidates them with the current guard, and is idempotent. The offline launcher disables dotenv loading and blocks remote fetch. It cannot perform live investigations or submissions.
 
-Visitors can inspect records and approved PDFs. A session-only operator code unlocks write requests; the server checks it each time. Editing creates a new version and clears approval; unsaved changes disable approval and sending. PDF preview remains after approval and before sending, matching the existing byte-bound approval contract. Unknown submissions stay locked.
+For sandbox integration, configure process/host environment variables below. Local `npm run dev` uses Next’s normal dotenv loading behavior; `.env.example` lists most settings. Never publish secrets or put them in `NEXT_PUBLIC_*` variables. Production compilation uses `scripts/build-env.cjs` to disable dotenv loading; clients initialize lazily.
 
-Fraunces and DM Sans are bundled via `next/font/local`; SIL Open Font License notices are in `src/app/fonts/`. AG Grid Community uses its theming API; its status totals are a custom Community-compatible footer, separated by currency. Sort preferences persist in local browser storage.
+| Variable | Purpose / default |
+| --- | --- |
+| `DATABASE_PATH` | SQLite file; local default `./data/counterclaim.db`. Render: **`/var/data/counterclaim.db`**. |
+| `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | Seller REST app’s **sandbox** credentials. |
+| `PAYPAL_WEBHOOK_ID` | Registered sandbox webhook’s ID, not an event ID. |
+| `OPENROUTER_API_KEY` | Required for live model investigation. |
+| `OPENROUTER_MODEL` | Default `deepseek/deepseek-v4-flash`; replay captures used the preset named above, which must exist in your account to reuse it. |
+| `OPERATOR_CODE` | Strong secret for mutations; unset fails closed. Enter through the UI’s operator access control; server checks every request. |
+| `CRON_SECRET` | Separate strong secret for `GET /api/cron/sync`; unset disables sync endpoint. |
+| `MAX_INVESTIGATIONS_PER_DAY` | Global UTC daily cap, default `50`; `0` disables investigations. |
+| `AGENT_MAX_TOKENS` | Cumulative input/output token budget per investigation, default `150000`. |
 
-## Browser verification
+Investigations also have a persisted per-IP hourly cap and a default ten-turn limit. A deployment must use one trusted proxy that appends or overwrites `X-Forwarded-For`; verify that behavior before relying on per-IP limits.
+
+### Prepare and file a sandbox dispute
+
+The detailed operator commands and state-dependent checks are in [spike/RUNBOOK.md](spike/RUNBOOK.md). The spike CLI loads **its own** `spike/.env`; app settings do not automatically configure it. The following steps are for a later operator-run sandbox session and make real sandbox requests.
+
+1. In the [PayPal developer dashboard](https://developer.paypal.com/), create a business sandbox seller, a separate personal sandbox buyer, and a REST sandbox app owned by the seller. Verify dispute read/update permissions and tracking scope; stop if required entitlements are missing.
+2. Use the runbook’s `create-order` command, approve its URL as the **buyer**, then `capture` as the seller. Retain the distinct order and capture IDs. Tracking upload is separate from dispute evidence and is not verification of physical delivery.
+3. Sign in as the buyer at [sandbox.paypal.com](https://sandbox.paypal.com/), select the completed payment in Activity, and use Report a problem / Resolution Center to file an item-not-received dispute. Record the merchant-visible case ID from the seller account. The tested app could not create disputes by API; use the browser path. Eligibility and visibility delays are not guaranteed.
+4. Configure the app’s sandbox webhook URL as `https://YOUR_HOST/api/webhooks/paypal`, with `CUSTOMER.DISPUTE.CREATED`, `.UPDATED`, `.RESOLVED`, and save its webhook ID. Alternatively trigger authenticated `GET /api/cron/sync` to import/poll cases. A webhook simulator does not create or advance a dispute.
+5. To attach synthetic seller evidence to that local case, run `npm run assign-scenario -- <disputeId> strong-delivery` (also `weak-delivery`, `low-value`, `injection`). This assigns demo records only. Start `npm run dev`, open the case, unlock operator access and investigate.
+6. Follow the actual current stage and links, completing buyer escalation in the sandbox browser when offered. Evidence submission needs a seller response state and its action link. Review/edit, approve the saved version, inspect the generated PDF, then send separately. Offers and claim acceptance send their note/action payload without a PDF. A planned refund is not proof of an issued refund.
+7. Re-fetch the dispute after each action. Sandbox `require-evidence` and `adjudicate` controls require review state and their respective links; neither is a Counterclaim UI button. The observed adjudication wait was about 29 minutes. Never retry a write blindly after a timeout; an unknown Counterclaim attempt stays locked and needs manual reconciliation.
+
+See [PayPal’s sandbox testing guide](https://developer.paypal.com/disputes/test-go-live). A fresh end-to-end run through the completed app remains to be verified; the earlier spike run is not that verification.
+
+### Render hosting
+
+[`render.yaml`](render.yaml) defines one paid web service, one persistent disk and one HTTP cron job. It has been checked against Render’s current [Blueprint reference](https://render.com/docs/blueprint-spec), [Node version selection](https://render.com/docs/node-version), [persistent disks](https://render.com/docs/disks) and [cron documentation](https://render.com/docs/cronjobs) on Nov 6, 2026. Both Node runtimes use the bounded `engines.node: 26.x`; remove conflicting host Node overrides. No deployment is implied.
+
+At initial Blueprint creation, supply every `sync: false` value in host settings. Set `DATABASE_PATH=/var/data/counterclaim.db`; suggested model budget/cap values are in the table. Keep SQLite and its WAL files on that disk, with **one application instance**. Build: `npm ci --include=dev && npm run build`. Start: `npm run seed-demo && npm start -- --hostname 0.0.0.0 --port "$PORT"`. The seed runs at startup because the disk is unavailable during build. Health check: `/api/health` checks SQLite, not external provider availability.
+
+The cron runs every five minutes in UTC and calls `/api/cron/sync` over HTTPS; it never mounts the database. Set its `COUNTERCLAIM_URL` to the actual web URL and its `CRON_SECRET` to the same secret as the web service. It needs no PayPal or model credentials. `sync: false` prompts only at initial creation; add/update values manually for an existing Blueprint. Automatic deploys are disabled. Hosting, disk and cron incur Render charges. An external scheduler can instead send the same authenticated GET if you choose not to provision the cron.
+
+## Testing
 
 ```sh
-npx playwright install chromium
+npm run lint
+npm run typecheck
+npm test
 npm run build
+npx playwright install chromium
 npm run e2e
 ```
 
-Playwright recreates only `data/e2e.db` and its WAL files, seeds replays plus clearly named `TEST-*` fixtures, starts the production app with dotenv loading disabled and remote fetch blocked, and uses a public local-test operator code. It never contacts PayPal or OpenRouter. Request tests verify real guard, replay enforcement, visitor access and privacy. Browser tests verify sort persistence, source selection, rejected approval, editing/version binding and privacy. Screenshots cover routes and key states at 1440 and 390, saved to ignored `data/ui-shots/`. The test database is isolated from `data/counterclaim.db`.
+Vitest injects fake providers and blocks external fetch. Coverage includes state/action derivation, reconstructed trace contracts, model-tool behavior, money facts, guards, privacy, version-bound approval and uncertain submissions. Playwright uses an isolated `data/e2e.db`, explicit `TEST-*` fixtures and a production server with dotenv loading disabled and remote fetch blocked. It covers public reads, replay enforcement, review/edit/approval behavior, citations, sorting and responsive screenshots. Browser launch requires an environment that permits Chromium; API-only checks can run with `npm run e2e -- e2e/api.spec.ts`.
 
-Browser launch requires an environment that permits Chromium's macOS Mach services. If launch is denied, request tests can still run with `npm run e2e -- e2e/api.spec.ts`; screenshot and visual QA remain unverified until the browser suite runs.
+`node spike/run-mock.mjs` exercises the earlier CLI against a local mock only. `npm run eval` is a separate opt-in **live OpenRouter** evaluation, not part of offline testing. Historical captures establish recorded behavior, not reproducibility on a future provider run. These are reproduction commands, not a claim that they were rerun while preparing these materials.
 
-## Demo records and investigation
+## Tools used
 
-Import/sync a sandbox dispute, then explicitly assign demo seller data:
+Next.js, React, TypeScript, Node `node:sqlite`, PayPal sandbox REST APIs, OpenRouter, AG Grid Community, Zod, `pdf-lib`, Vitest, Playwright and ESLint. OpenAI Codex assisted with submission documentation and source research. The UI bundles Fraunces and DM Sans under their included SIL Open Font License notices. Render is the supplied hosting target, not a claimed deployed integration.
 
-```sh
-npm run assign-scenario -- <disputeId> strong-delivery
-```
+## Limitations
 
-Scenarios: `strong-delivery` (signed delivery to matching address), `weak-delivery` (stalled tracking, mismatched address), `low-value` (partial proof, customer willing to settle), `injection` (malicious instructions inside a customer message). Each has an order, shipment, tracking event, message, policy and recorded costs. Assignments persist in `case_scenarios`. Unassigned cases have no seller records. This command changes local demo data only.
+Sandbox only; one seller; synthetic store records; no live store/carrier integration or verified runtime Orders linkage. Webhook delivery and text-only accept-claim metadata were not exercised by the recorded spike. Current guard acceptance of the replay fixtures includes offline revalidation; it is not proof of two consecutive passing live evaluations, which were not established in the earlier capped evaluation. Prompt-injection checks can miss attacks and reject valid prose. No demonstrated time saving, win-rate improvement or real seller revenue impact is claimed.
 
-The agent has exactly four read-only tools: `get_dispute`, `get_order`, `list_records`, `read_record`. Tool results are marked untrusted data. It cannot call PayPal writes. Runs default to ten turns and a cumulative 150,000-token budget (`AGENT_MAX_TOKENS`), with conservative accounting when usage is absent (`tokensEstimated` marks estimates in the API/eval). Provider responses are bounded to 1 MiB. OpenRouter uses fetch with a 120-second timeout and retries once on 429/5xx, requesting `provider.require_parameters=true` only for ordinary model IDs. For `@preset/` models the provider field is omitted so preset routing holds. Runs record actual provider, turn count and a safe fixed failure code; tool argument, unknown-tool and unavailable-record errors are returned to the model within the turn limit. Fenced or surrounding-text JSON is accepted, with one schema repair using safe issue paths and codes.
+Public reads filter known private identities and emails, but raw snapshots stored locally may contain personal data. Access control for hosting/storage, retention and backups remain operator work. SQLite and sync serialization require one app process. Cases outside PayPal’s listing window must already be imported to remain pollable. Uncertain submissions have no automatic unlock. Production readiness and a fresh app-level sandbox end-to-end run remain unverified.
 
-A PayPal capture/transaction ID is not assumed to be an Orders v2 ID. `get_order` reports an explicit gap unless a trusted order resolver is supplied to the investigation service. No unsupported order linkage or buyer details are sent to the model. Seeded seller orders remain available through records.
+Problem evidence and actual fee/protection conditions are documented in [impact sources](docs/impact-sources.md). Card-network chargeback survey results are not PayPal dispute statistics or small-seller estimates.
 
-`MoneyFacts` uses only the disputed amount and a single same-currency cost record. Net if won is disputed amount minus item/shipping cost; net if lost is negative item/shipping cost. Missing, ambiguous or mixed-currency costs produce gaps. These conditional cash outcomes assume neither win probability nor unrecorded fees.
+## License
 
-For opt-in live-model evaluation, set the key in the process environment and invoke:
-
-```sh
-npm run eval
-```
-
-The stage 2c diagnostic options are `--capture` and `--scenario <strong-delivery|weak-delivery|low-value|injection>`. Capture writes full case files, per-turn model messages/replies, safe numeric HTTP failure diagnostics, run/tool/source traces and guard results under a timestamped, git-ignored `data/eval/` directory. Inputs are synthetic demo cases only. `EVAL_CAPTURE=1` and `EVAL_SCENARIO` provide the same controls for launchers that do not forward arguments. Requests are paced by `EVAL_REQUEST_DELAY_MS` (default 30000) and scenarios by `EVAL_DELAY_MS` (default 5000). Both delays are bounded to 0–30000 ms.
-
-Use only the authorized wrapper for the current live evaluation; these options do not authorize other launchers or routes. HTTP refusals expose status numbers and a fixed classification, never provider error text. Allowance failures stop immediately; transient 429/5xx failures retry once after a delay, honoring seconds/date `Retry-After` up to 30 seconds. Longer retry windows stop rather than retry early. A run exits nonzero for rejected/missing case files or unexpected strong/weak/low-value recommendations.
-
-This evaluates synthetic disputes in an in-memory database and never calls PayPal. It prints provider, failure code, guard reasons and warnings, turn count, recommendation, tokens, cost and injection repetition status. The harness stops further requests on missing/non-Mistral provider or nonzero/missing cost, or provider refusal; it never chooses a fallback route. Stage 2b used the explicitly authorized launcher once: Mistral, cost 0, then `provider_refused` at turn 3 before a case file. Stage 2c reached one full passing run (run 14); run 15 rejected injection on a source-scoped negation false positive, fixed afterward with a regression test. The 15-run cap was reached, so the required two consecutive full live passes were not achieved. Full demo captures are in ignored `data/eval/`. Scripts use the installed TypeScript compiler through a local Node loader; they do not download a runner or load dotenv files.
-
-## Public UI API
-
-Shared request/response types and validation schemas are in [`src/api/contract.ts`](src/api/contract.ts). All JSON responses use `Cache-Control: no-store`.
-
-| Method and path | Request | Response |
-| --- | --- | --- |
-| `GET /api/cases` | — | `CasesResponse` |
-| `GET /api/cases/[id]` | — | `CaseDetailResponse` |
-| `POST /api/cases/[id]/investigate` | `{}` | `InvestigateResponse` |
-| `PUT /api/cases/[id]/case-file` | `{caseFile}` | `EditCaseFileResponse` |
-| `POST /api/cases/[id]/approve` | `{versionId}` | `ApproveResponse` |
-| `POST /api/cases/[id]/submit` | `{approvalId}` | `SubmitResponse` |
-| `GET /api/cases/[id]/evidence.pdf` | — | PDF bytes, or `ApiErrorResponse` |
-
-Mutation bodies require `Content-Type: application/json`. Requests are limited to 128 KiB. Investigations allow four requests per IP per hour, persisted in SQLite using hashed IPs. A separate transactional global UTC daily cap, `MAX_INVESTIGATIONS_PER_DAY` (default 50, 0 disables investigations), applies regardless of IP and survives restarts. The deployment must use one trusted reverse proxy that appends/overwrites `X-Forwarded-For`; the nearest address (last entry) is used. Missing/invalid addresses share one fallback bucket. Never forward arbitrary client-supplied headers unchanged.
-
-The detail response includes safe dispute fields, case file versions and sources, readable tool traces, history, approval metadata and submission attempts. It omits raw snapshots, buyer identities, provider error bodies, secrets and approved packet base64. Case file text containing known current/historical buyer identity or email is rejected and withheld from responses. Typed trusted facts from seller records and dispute fields drive factual checks, material gaps and evidence strength. Code-computed gaps are merged with model gaps and include unavailable Orders lookup. Recommendation conflicts appear as guard warnings; the model recommendation remains advice. Evidence strength uses computed facts, never model confidence or model gap omissions. Rejected case files retain their guard reasons. Invalid model output gets one repair attempt, then the run fails without saving a partial case file.
-
-Edits create new versions and require new approval. Approval binds the version, action, note, amount, evidence metadata and actual PDF bytes with SHA-256. PDF preview requires approval of the latest version and serves those same bytes only after rechecking their inputs against current and historical private values, including PDF text normalization. Every page is labelled `SANDBOX DEMO DATA`. Files are strictly below 10,000,000 bytes; document/note/tracking limits follow the supplied Disputes OpenAPI. PDFs use standard fonts and normalize unsupported glyphs. A planned refund is never presented as proof that a refund was issued.
-
-Immediately before a write, the server re-fetches the dispute, checks the exact approval hash, current stage, fresh action links and offer limit. A transaction reserves the submission against the latest case-file version. Database gates block edits, new investigations and late results from already-running investigations while dispatch is pending or unknown. A durable unique stage gate also blocks concurrent or repeat submissions. Attempts record `submitting`, `submitted`, `failed` or `unknown`. Transport/body failures, HTTP 408 and 5xx become `unknown`, trigger a state refresh and are never automatically re-sent. Unknown/submitting attempts remain blocked across restarts; there is no automatic reset. A refused action is reconciled and returns the new detail state (409). Sandbox adjudication is a forced outcome, not evidence-quality validation.
-
-## Modules and limitations
-
-- `src/paypal/`: fixed sandbox origin, cached OAuth, paginated reads, writes with no retries, exact raw webhook verification. Full outgoing write contracts are tested.
-- `src/cases/`: transactional SQLite migrations, snapshots, immutable event history, sync, scenario assignments, versions, approvals, runs and attempts.
-- `src/records/`, `src/agent/`, `src/guard/`, `src/evidence/`: demo store, bounded tool loop, deterministic checks and PDF packet generation.
-- `src/api/` and `src/app/api/cases/`: UI contract, privacy projection and guarded server operations.
-
-See [fixture provenance](src/paypal/__fixtures__/trace/README.md). Reconstructed snapshots cover the real observed dispute states; unknown response fields remain in local storage but are not exposed publicly.
-
-Live integration is unconfirmed: the recorded spike did not exercise Orders, webhook delivery or the text-only accept-claim metadata shape. The supplied Disputes OpenAPI omits that JSON schema; the existing adapter uses `{note}`. Real-model tool/schema behavior remains unconfirmed after the stopped opt-in eval. No commits, pushes or deployments were performed.
-
-Raw PayPal snapshots can contain personal data locally. Host access control, retention and backup policy remain deployment work. Snapshot sync serialization is per process; run one application instance. Historical cases outside PayPal's listing window must already be stored/imported to be polled. A later independent stage review and explicitly authorized sandbox end-to-end run are still needed before deployment.
+[MIT](LICENSE), copyright 2026 the Counterclaim contributors. Third-party dependencies and bundled fonts retain their own licenses.

@@ -1,0 +1,74 @@
+# Reviewed against https://render.com/docs/blueprint-spec and
+# https://render.com/docs/cronjobs on 2026-11-06. No resources deployed.
+# Both Node services resolve package.json engines.node (26.x).
+# Do not override that with a different NODE_VERSION in host settings.
+services:
+  - type: web
+    name: counterclaim
+    runtime: node
+    region: oregon
+    plan: starter
+    numInstances: 1
+    autoDeployTrigger: off
+    buildCommand: npm ci --include=dev && npm run build
+    # Disk is available at runtime, not during build. Seed imports offline replays.
+    startCommand: npm run seed-demo && npm start -- --hostname 0.0.0.0 --port "$PORT"
+    healthCheckPath: /api/health
+    disk:
+      name: counterclaim-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      # Required: /var/data/counterclaim.db (including WAL files on the disk).
+      - key: DATABASE_PATH
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      # Suggested: @preset/deepseek-mistral-vibe for the recorded-demo routing;
+      # default in code when absent: deepseek/deepseek-v4-flash.
+      - key: OPENROUTER_MODEL
+        sync: false
+      - key: OPERATOR_CODE
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+      # Suggested: 50; set 0 to disable new investigations.
+      - key: MAX_INVESTIGATIONS_PER_DAY
+        sync: false
+      # Suggested: 150000 cumulative tokens per investigation.
+      - key: AGENT_MAX_TOKENS
+        sync: false
+
+  - type: cron
+    name: counterclaim-sync
+    runtime: node
+    region: oregon
+    plan: starter
+    autoDeployTrigger: off
+    schedule: "*/5 * * * *"
+    buildCommand: node --version
+    # HTTP only: this job must never open the web service's SQLite database.
+    # No retries and no response body/secret logging.
+    startCommand: >-
+      node --input-type=module -e 'const base=process.env.COUNTERCLAIM_URL;
+      const secret=process.env.CRON_SECRET;
+      if(!base || !secret) throw new Error("Sync configuration missing");
+      const url=new URL("/api/cron/sync",base);
+      if(url.protocol!=="https:") throw new Error("HTTPS required");
+      const response=await fetch(url,{headers:{Authorization:"Bearer "+secret},
+      redirect:"error",signal:AbortSignal.timeout(120000)});
+      if(!response.ok) throw new Error("Sync HTTP "+response.status);
+      console.log("Sync completed");'
+    envVars:
+      # Set to the web service's actual HTTPS URL after it is assigned.
+      - key: COUNTERCLAIM_URL
+        sync: false
+      # Must equal CRON_SECRET on the web service.
+      - key: CRON_SECRET
+        sync: false
