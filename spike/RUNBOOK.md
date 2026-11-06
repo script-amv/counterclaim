@@ -2,6 +2,19 @@
 
 All commands below start in the workspace root unless a block says `cd spike`. Node 20+ is required. No npm install. Everything created by these commands stays under `spike/`. Do not enable shell tracing or dump environment variables. The CLI loads `spike/.env` automatically and does not save tokens.
 
+## Observed app run — November 5–6, 2026 (UTC)
+
+These commands are a reproduction guide, not a claim that every CLI step below ran. The completed app was exercised on a fresh $10 sandbox item-not-received case:
+
+1. Buyer filed in the browser. Direct ID lookup worked immediately; listing lagged about four minutes. App cron sync imported the case.
+2. A real investigation using `@preset/deepseek-mistral-vibe` via Mistral (reported cost 0) was rejected when the guard misread a signed negative figure. After the fix, the next recommended fight with high confidence at about 15,000 tokens.
+3. Approved INQUIRY evidence using `PROOF_OF_DELIVERY_SIGNATURE` failed with HTTP 400 `EVIDENCE_TYPE_IS_NOT_ALLOWED`. The app now shows PayPal's safe error fields. A new approval using `PROOF_OF_FULFILLMENT` with tracking was accepted: `WAITING_FOR_BUYER_RESPONSE`.
+4. Buyer-side inspection revealed internal costs in the note. The fix uses an allowlisted outbound packet and one outbound text check. Economics, gaps, recommendation, confidence, and cost/policy records stay out; approval shows exclusions. Inspect both seller and buyer views on future runs.
+5. Buyer escalated. About six minutes later the case became CHARGEBACK, seller's turn. The app synced it and blocked the old INQUIRY approval. After fixing a carrier-name privacy false positive, a new investigation recommended fight. The second submission was accepted: UNDER_REVIEW.
+6. About 30 minutes after evidence, `adjudicate` appeared. We selected `SELLER_FAVOR`; about three minutes later the case showed `RESOLVED_SELLER_FAVOUR`. The app synced it as closed.
+
+**We picked the sandbox outcome. Forced sandbox outcomes say nothing about real-world win rates.** Timings are observations, not service guarantees. Actual webhook delivery and this flow's use of `require-evidence` remain unverified. All four scenario replays were re-recorded November 6 from unedited passing real captures: strong → fight, weak → refund, low-value → offer, injection → fight without repeating the injection.
+
 ## 1. Reproduce the credential-free mock run
 
 ```sh
@@ -42,7 +55,7 @@ node dispute-spike.mjs show PP-MOCK-1
 
 The three `/__mock/*` POSTs stand in for browser steps; **they are invented local test endpoints, never PayPal APIs**. The printed mock approval URL is a label for the POST stand-in, not an interactive page. Stop terminal A with Ctrl-C. Local BASE accepts only HTTP `localhost`, `127.0.0.1`, or `[::1]` origins. Local mode always uses dummy credentials. No overrides to another remote API origin are accepted; redirects are never followed.
 
-## 2. Prepare a later real SANDBOX run (not performed yet)
+## 2. Prepare another real SANDBOX run
 
 **Human/browser:** at https://developer.paypal.com create/select a sandbox business seller and a separate sandbox personal buyer. Create a REST sandbox app owned by that seller. Obtain its sandbox client ID/secret and verify dispute permissions; an ordinary checkout app may need additional scope/entitlement configuration. If OAuth lacks seller-update, stop and resolve access through PayPal before attempting mutations.
 
@@ -104,9 +117,9 @@ If it is absent, repeat list/show manually about every 30 seconds; after 15 minu
 
 A buyer create-dispute API also exists but is not implemented here: it needs buyer-side credentials/assertion and may be limited release. This runbook intentionally uses the documented browser path. [Sandbox case creation](https://developer.paypal.com/disputes/test-go-live).
 
-## 5. Reach review, then request seller evidence
+## 5. Follow the current stage and evidence action
 
-Use `show` after every browser/API action. The next command depends on the actual state:
+Use `show` after every browser/API action. In the app run, initial INQUIRY fulfillment evidence left the case waiting for the buyer; buyer escalation and a fresh CHARGEBACK submission then reached review. Re-investigate and approve the new stage; do not reuse the INQUIRY approval. The next command depends on the actual state:
 
 - **OPEN / INQUIRY:** human/browser, use the buyer Resolution Center to escalate to a claim when offered. Do not accept/refund/close the claim. Then run `show` again. Escalation changes the lifecycle stage; it does not guarantee immediate review.
 - **WAITING_FOR_SELLER_RESPONSE with provide-evidence:** submit the initial API evidence using the command below, then run `show` until PayPal moves the case onward. This may be necessary before the sandbox require-evidence helper becomes usable.
@@ -134,18 +147,18 @@ node dispute-spike.mjs evidence "$DISPUTE_ID" output/delivery.pdf
 node dispute-spike.mjs show "$DISPUTE_ID"
 ```
 
-The CLI sends multipart `input` JSON and `evidence-file`, proof-of-fulfillment tracking info, and matching document name. Inspect `SUBMITTED_BY_SELLER` evidence in the follow-up detail. Publication examples differ on file-part naming; a real upload failure must be investigated, not papered over by the mock. [Evidence example](https://developer.paypal.com/platforms/disputes/integrate-disputes/).
+The CLI sends multipart `input` JSON and `evidence-file`, proof-of-fulfillment tracking info, and matching document name. Inspect `SUBMITTED_BY_SELLER` evidence in the follow-up detail. The app’s fulfillment submissions were accepted in the November 5–6 run. Publication examples still differ on file-part naming; inspect each actual result. For EVIDENCE_TYPE_IS_NOT_ALLOWED, review the evidence type and approve a new packet rather than retrying the frozen approval. [Evidence example](https://developer.paypal.com/platforms/disputes/integrate-disputes/).
 
 ## 6. Force the sandbox seller win and verify it
 
-Wait for `UNDER_REVIEW` **and** `adjudicate` in `show`. If either remains absent, record the case status, link names, debug ID and elapsed time; the end-to-end spike remains blocked. Once both exist:
+Wait for `UNDER_REVIEW` **and** `adjudicate` in `show`. The observed wait was about 30 minutes after evidence. If either remains absent on a new run, record the case status, link names, debug ID and elapsed time; that new run is still awaiting the control. Once both exist:
 
 ```sh
 node dispute-spike.mjs adjudicate "$DISPUTE_ID" SELLER_FAVOR
 node dispute-spike.mjs show "$DISPUTE_ID"
 ```
 
-Success requires both `RESOLVED` and seller-favor outcome in the detail, with submitted API evidence retained. An HTTP 200 from adjudication alone is insufficient. [Sandbox adjudication](https://developer.paypal.com/disputes/test-go-live).
+Verify the terminal seller-favour outcome in the detail and evidence history. The observed terminal outcome was `RESOLVED_SELLER_FAVOUR`, synced by the app as closed. This command selects a sandbox outcome; it does not test whether the evidence would win or establish real-world win rates. An HTTP 200 from adjudication alone is insufficient. [Sandbox adjudication](https://developer.paypal.com/disputes/test-go-live).
 
 ## 7. Optional webhook verification by a human
 
@@ -155,4 +168,4 @@ The webhook simulator can test listener connectivity using mock events; it canno
 
 ## Completion record
 
-Keep sanitized observations under `spike/output/`: runtime version, order/capture/dispute IDs, elapsed visibility/transition times, HTTP statuses, debug IDs, link names, evidence metadata, final outcome, and webhook observations. Never record credentials, access tokens, authorization headers or buyer personal data. On network timeout inspect current state before retrying: mutations have no automatic idempotency/retry handling. Do not claim a real sandbox pass until this run is completed with credentials.
+Keep sanitized observations under `spike/output/`: runtime version, order/capture/dispute IDs, elapsed visibility/transition times, HTTP statuses, debug IDs, link names, evidence metadata, final outcome, and webhook observations. Never record credentials, access tokens, authorization headers or buyer personal data. On network timeout inspect current state before retrying: mutations have no automatic idempotency/retry handling. The dated app run above is complete. For a fresh run, report its own results and gaps; do not substitute the mock or earlier observations for new verification.

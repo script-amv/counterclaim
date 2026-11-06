@@ -12,7 +12,7 @@ Counterclaim builds a sourced case file for a PayPal sandbox dispute. It reads t
 
 The seller can open a citation, inspect the source and edit the response. Code checks citations, typed delivery facts, money, privacy and repeated instructions. Code also computes material gaps and evidence strength rather than relying on model confidence. Conditional money outcomes exclude unrecorded fees and do not predict a win.
 
-The approval page states exactly what will be sent. Approval binds a particular version and payload, including the exact PDF bytes for evidence submission. The seller inspects that PDF and separately sends the response. The server re-fetches PayPal’s current stage and action links immediately before dispatch. Uncertain submissions stay locked to prevent a blind duplicate.
+The approval page states exactly what will be sent and shows excluded internal items. An allowlisted packet and an outbound text check keep economics, gaps, recommendation, confidence, and cost/policy records out of the response. Approval binds a particular version and payload, including the exact PDF bytes for evidence submission. The seller inspects that PDF and separately sends the response. The server re-fetches PayPal’s current stage and action links immediately before dispatch. Uncertain submissions stay locked to prevent a blind duplicate.
 
 The public demo is read-only. Four cases replay recorded model outputs against synthetic seller records; a separate case reconstructs a real sandbox timeline. Neither replay can send anything. The method and data labels remain visible throughout.
 
@@ -26,37 +26,35 @@ A separate sandbox-only REST adapter handles OAuth, dispute sync, webhook verifi
 
 ## Challenges we ran into
 
-The records distinguish an early feasibility report from later observations. [spike/FINDINGS.md](../spike/FINDINGS.md) predates the live run and labels its local mock as unproven against PayPal. The later [design record](superpowers/specs/2026-11-05-counterclaim-design.md) and [trace provenance](../src/paypal/__fixtures__/trace/README.md) document the real sandbox findings.
+The November 5–6, 2026 (UTC) sandbox run exposed failures that a local mock could not. A buyer filed an item-not-received dispute on a $10 payment. It was readable by ID immediately but took about four minutes to appear in the list endpoint; the app's cron sync then imported it.
 
-Available actions appeared and disappeared as the dispute changed state. The observed relation names used underscores. Calls outside the allowed state were refused. We normalized relation spellings and based sending on fresh links, rather than a fixed sequence of buttons.
+The first real investigation was rejected because a guard misread a signed negative figure. After the fix, the next run recommended fight with high confidence, using about 15,000 tokens. Later, another guard treated a carrier-name field as private. Fixing that false positive allowed a fresh investigation after escalation. These were real runs using `@preset/deepseek-mistral-vibe` via Mistral, with reported cost 0.
 
-After claim-stage evidence, the sandbox adjudication link took about 29 minutes to appear in that run. We store case history and support polling instead of treating a delayed control as immediate failure. Dispute creation by API failed with `No permissions to set target_client_id`, so the runbook uses the buyer’s sandbox website to file a case. Multipart evidence used a JSON `input` part with `evidence-file`; documentation differences made the mock alone insufficient proof.
+PayPal refused the approved INQUIRY submission with HTTP 400 `EVIDENCE_TYPE_IS_NOT_ALLOWED` for `PROOF_OF_DELIVERY_SIGNATURE`. We preserved and displayed the safe error fields. `PROOF_OF_FULFILLMENT` with tracking was accepted and moved the case to `WAITING_FOR_BUYER_RESPONSE`.
 
-The AI checks had their own failures. A guard interpreted “Delivery, signature and a matching address are all unsupported” as affirmative delivery proof. The original model output was retained and revalidated after a narrow negation fix. Another run copied a long prompt example and was rejected; we removed that example instead of relaxing the disclosure guard. A weak-delivery retry exhausted its turn limit. [Recorded-run provenance](../src/records/recorded-runs/README.md).
+The buyer's view revealed a more serious problem: our note exposed the seller's internal costs. We replaced that path with an allowlisted outbound packet and one outbound text check. Economics, gaps, recommendation, confidence, and cost/policy records are excluded. The approval screen shows what stays out.
 
-We also could not treat a capture ID as a verified Orders ID. The runtime keeps that missing lookup visible as a gap.
+After the buyer escalated, the case became CHARGEBACK, seller's turn, about six minutes later. The app synced the stage change and blocked the old INQUIRY approval. A new investigation recommended fight; the second submission was accepted and moved the case to UNDER_REVIEW.
 
 ## Accomplishments that we’re proud of
 
-The application can advise against fighting and show the records behind that advice. The interface connects claims, sources, gaps and the seller’s final response without hiding the uncertainty.
+The app handled a fresh sandbox dispute through import, real investigation, approval, accepted evidence submissions, escalation and closure. It also surfaced a refused evidence type and prevented an approval from an earlier stage from being reused.
 
-The recorded fixtures preserve actual model prose, tool traces and a guard false positive. The current guard rechecks them offline. A hostile customer message remains evidence rather than becoming an instruction in the accepted replay response; that example is not a general proof of injection resistance.
+All four scenario replays were re-recorded November 6 from unedited passing real captures: strong evidence → fight, weak evidence → refund, low value → offer, and injection → fight without repeating the injection. Imports revalidate them offline. One accepted injection example does not establish general resistance to attacks or repeatability across future model runs.
 
-Approval and sending are separate operations. Version binding, persisted submission gates and unknown-outcome locks enforce that distinction on the server, including across restarts. Offline tests use fake providers; browser tests isolate their database and block remote fetch.
-
-The earlier real sandbox spike reached seller-favour resolution using a sandbox control. That established a sandbox integration path, not an end-to-end validation of the completed app. **Sandbox settlement says nothing about real-world outcomes.**
+About 30 minutes after evidence, the sandbox adjudication control appeared. We chose `SELLER_FAVOR`; about three minutes later PayPal showed `RESOLVED_SELLER_FAVOUR`, and the app synced it as closed. **We selected the outcome with a sandbox control. It says nothing about real-world win rates or whether the evidence would win.**
 
 ## What we learned
 
-A payment integration is a changing state machine, not a sequence that always completes on cue. Evidence tools need to preserve missing information and distinguish observed facts from reconstructed history.
+The buyer's view is part of testing the response. A useful internal investigation contains costs, gaps and advice that must never become buyer-facing evidence. Human approval needs a clear outbound boundary and must bind the actual response bytes.
 
-A model can produce useful prose and still copy instructions or fail to finish. A guard can protect a boundary and still misunderstand negation. Keeping the original output, rejection reasons and source trace made these problems reviewable.
+A dispute changes while the seller works. Current stage and action links must be checked again before sending. List visibility, escalation and sandbox controls can lag; the observed four-, six- and 30-minute waits are case observations, not service guarantees.
 
-Human approval has to bind the actual response bytes. An attractive preview alone does not establish what the server will send.
+A guard can catch unsafe output and still reject valid figures or fields. Keeping the rejected output and source trace made narrow fixes possible. Model confidence did not settle evidence eligibility, privacy or the eventual outcome.
 
 ## What’s next
 
-Run and record a fresh end-to-end sandbox submission through the completed app, verify actual webhook delivery and the accept-claim metadata contract, and repeat live-model evaluations. The earlier capped evaluation did not establish two consecutive full passing runs; offline fixture validation does not replace that.
+Re-record the video on a fresh sandbox case, verify actual webhook delivery and the accept-claim metadata contract, and repeat live-model evaluations. The earlier capped evaluation did not establish two consecutive full passing runs; offline fixture validation does not replace that.
 
 Before any production use, add trusted store/order linkage, stronger operator identity and seller isolation, retention and backup policies, and a reviewed path for manually reconciling unknown writes. Test with consenting sellers to measure handling time and decision quality. Production PayPal, live store integration and appeals remain outside this prototype.
 

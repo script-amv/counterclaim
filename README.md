@@ -2,7 +2,11 @@
 
 Counterclaim helps a small online seller decide how to answer a PayPal dispute by assembling a case file with inspectable sources. It can recommend fighting, offering a settlement, or accepting the claim—including “Don’t fight this one” when the evidence is weak. The seller reviews the response, approves a specific version, inspects its evidence PDF where applicable, and separately chooses whether to send it to the PayPal sandbox.
 
-**Hosted demo:** [REPLACE WITH HOSTED DEMO URL](https://COUNTERCLAIM-DEMO-URL.example) — placeholder, not a deployed service.
+**Hosted demo:** [REPLACE WITH HOSTED DEMO URL] — placeholder.
+
+**Repository:** [REPLACE WITH PUBLIC REPOSITORY URL] — placeholder.
+
+**Video:** [REPLACE WITH PUBLIC VIDEO URL] — placeholder.
 
 ## Try it as a judge
 
@@ -22,6 +26,20 @@ Open `PP-R-ZAT-10196609` for the reconstructed real sandbox timeline. Replays ca
 
 **Sandbox settlement says nothing about real-world outcomes.** The recorded seller-favour resolution used PayPal’s sandbox adjudication control. It does not demonstrate that the evidence would win a real claim, and Counterclaim promises neither wins nor recovery rates.
 
+## Verified status — November 5–6, 2026 (UTC)
+
+A fresh $10 sandbox item-not-received dispute went through the app from cron import to closed status. It was readable by ID immediately, appeared in the list endpoint after about four minutes, and was picked up by cron sync. Real investigations used `@preset/deepseek-mistral-vibe` via Mistral with reported cost 0. The first was rejected when a guard misread a signed negative figure; after the fix, the next recommended fight with high confidence at about 15,000 tokens.
+
+At `INQUIRY`, an approved `PROOF_OF_DELIVERY_SIGNATURE` submission was refused with HTTP 400 `EVIDENCE_TYPE_IS_NOT_ALLOWED`. The app now preserves and displays PayPal's safe error fields. `PROOF_OF_FULFILLMENT` with tracking was accepted, leaving the case `WAITING_FOR_BUYER_RESPONSE`.
+
+Checking the buyer's view revealed that our note exposed internal costs. The fix uses an allowlisted outbound packet and one outbound text check. Economics, gaps, recommendation, confidence, and cost/policy records stay out; approval shows the excluded items.
+
+After buyer escalation, the case became `CHARGEBACK`, seller's turn, about six minutes later. Sync picked up the stage change and the app blocked the old `INQUIRY` approval. After fixing a guard that treated a carrier-name field as private, a new investigation recommended fight. The second submission was accepted and the case became `UNDER_REVIEW`.
+
+The sandbox `adjudicate` control appeared about 30 minutes after evidence. We selected `SELLER_FAVOR`; about three minutes later the case showed `RESOLVED_SELLER_FAVOUR`. The app synced it and displayed it as closed. **We picked the sandbox outcome. This says nothing about real-world win rates.** These delays are observations from this case, not service guarantees.
+
+All four scenario replays were re-recorded November 6 from unedited passing real captures: strong → fight, weak → refund, low-value → offer, injection → fight without repeating the injection.
+
 ## Architecture
 
 One Next.js App Router service runs React, TypeScript and Node’s built-in SQLite. AG Grid Community provides the case queue; `pdf-lib` generates evidence PDFs; Zod validates API and model data.
@@ -29,8 +47,8 @@ One Next.js App Router service runs React, TypeScript and Node’s built-in SQLi
 ```text
 PayPal sandbox → verified webhook / authenticated sync → SQLite case history
 Seller demo records + safe dispute fields → read-only agent tools → OpenRouter
-Model case file → deterministic guards → seller review → version-bound approval
-Approved note / offer / PDF → fresh PayPal action check → sandbox REST write
+Model case file → deterministic guards → seller review → allowlisted outbound packet
+Version-bound approval → fresh PayPal action check → sandbox REST write
 ```
 
 - `src/paypal/`: sandbox-only OAuth, paginated reads, writes without automatic retries, raw webhook verification.
@@ -79,9 +97,9 @@ The detailed operator commands and state-dependent checks are in [spike/RUNBOOK.
 4. Configure the app’s sandbox webhook URL as `https://YOUR_HOST/api/webhooks/paypal`, with `CUSTOMER.DISPUTE.CREATED`, `.UPDATED`, `.RESOLVED`, and save its webhook ID. Alternatively trigger authenticated `GET /api/cron/sync` to import/poll cases. A webhook simulator does not create or advance a dispute.
 5. To attach synthetic seller evidence to that local case, run `npm run assign-scenario -- <disputeId> strong-delivery` (also `weak-delivery`, `low-value`, `injection`). This assigns demo records only. Start `npm run dev`, open the case, unlock operator access and investigate.
 6. Follow the actual current stage and links, completing buyer escalation in the sandbox browser when offered. Evidence submission needs a seller response state and its action link. Review/edit, approve the saved version, inspect the generated PDF, then send separately. Offers and claim acceptance send their note/action payload without a PDF. A planned refund is not proof of an issued refund.
-7. Re-fetch the dispute after each action. Sandbox `require-evidence` and `adjudicate` controls require review state and their respective links; neither is a Counterclaim UI button. The observed adjudication wait was about 29 minutes. Never retry a write blindly after a timeout; an unknown Counterclaim attempt stays locked and needs manual reconciliation.
+7. Re-fetch the dispute after each action. Sandbox `require-evidence` and `adjudicate` controls require review state and their respective links; neither is a Counterclaim UI button. In the November 5–6 run, the adjudication control appeared about 30 minutes after evidence. Never retry a write blindly after a timeout; an unknown Counterclaim attempt stays locked and needs manual reconciliation.
 
-See [PayPal’s sandbox testing guide](https://developer.paypal.com/disputes/test-go-live). A fresh end-to-end run through the completed app remains to be verified; the earlier spike run is not that verification.
+See [PayPal’s sandbox testing guide](https://developer.paypal.com/disputes/test-go-live). The November 5–6 app run above verified import, investigation, approval, submissions, stage changes and closure in the sandbox. Webhook delivery remains unverified.
 
 ### Render hosting
 
@@ -93,6 +111,8 @@ The cron runs every five minutes in UTC and calls `/api/cron/sync` over HTTPS; i
 
 ## Testing
 
+Documentation verification on November 6, 2026: lint, typecheck, all 428 unit tests (29 files), and production build passed without loading dotenv files or contacting providers. Typecheck ran after the build to avoid a race with generated route types. Browser tests and live evaluations were not rerun for this update.
+
 ```sh
 npm run lint
 npm run typecheck
@@ -103,9 +123,9 @@ npx playwright install chromium
 npm run e2e
 ```
 
-Vitest injects fake providers and blocks external fetch. Coverage includes state/action derivation, reconstructed trace contracts, model-tool behavior, money facts, guards, privacy, version-bound approval and uncertain submissions. Playwright uses an isolated `data/e2e.db`, explicit `TEST-*` fixtures and a production server with dotenv loading disabled and remote fetch blocked. It covers public reads, replay enforcement, review/edit/approval behavior, citations, sorting and responsive screenshots. Browser launch requires an environment that permits Chromium; API-only checks can run with `npm run e2e -- e2e/api.spec.ts`.
+Vitest injects fake providers and blocks external fetch. Coverage includes state/action derivation, reconstructed trace contracts, model-tool behavior, money facts, guards, privacy, outbound packet exclusions, version-bound approval and uncertain submissions. Playwright uses an isolated `data/e2e.db`, explicit `TEST-*` fixtures and a production server with dotenv loading disabled and remote fetch blocked. It covers public reads, replay enforcement, review/edit/approval behavior, citations, sorting and responsive screenshots. Browser launch requires an environment that permits Chromium; API-only checks can run with `npm run e2e -- e2e/api.spec.ts`.
 
-`node spike/run-mock.mjs` exercises the earlier CLI against a local mock only. `npm run eval` is a separate opt-in **live OpenRouter** evaluation, not part of offline testing. Historical captures establish recorded behavior, not reproducibility on a future provider run. These are reproduction commands, not a claim that they were rerun while preparing these materials.
+`node spike/run-mock.mjs` exercises the earlier CLI against a local mock only. `npm run eval` is a separate opt-in **live OpenRouter** evaluation, not part of offline testing. Historical captures establish recorded behavior, not reproducibility on a future provider run. The dated sandbox observations above are separate from offline checks. Offline tests do not establish provider repeatability or real-world outcomes.
 
 ### Troubleshooting evidence submission
 
@@ -141,9 +161,9 @@ Next.js, React, TypeScript, Node `node:sqlite`, PayPal sandbox REST APIs, OpenRo
 
 ## Limitations
 
-Sandbox only; one seller; synthetic store records; no live store/carrier integration or verified runtime Orders linkage. Webhook delivery and text-only accept-claim metadata were not exercised by the recorded spike. The Nov 6 capture batch passed all four scenarios once; imports also revalidate offline. This does not establish repeatability across future live evaluations. Prompt-injection checks can miss attacks and reject valid prose. No demonstrated time saving, win-rate improvement or real seller revenue impact is claimed.
+Sandbox only; one seller; synthetic store records; no live store/carrier integration or verified runtime Orders linkage. Actual webhook delivery and text-only accept-claim metadata remain unverified; the observed app run used cron sync and evidence submissions. The Nov 6 capture batch passed all four scenarios once; imports also revalidate offline. This does not establish repeatability across future live evaluations. Prompt-injection checks can miss attacks and reject valid prose. No demonstrated time saving, win-rate improvement or real seller revenue impact is claimed.
 
-Public reads filter known private identities and emails, but raw snapshots stored locally may contain personal data. Access control for hosting/storage, retention and backups remain operator work. SQLite and sync serialization require one app process. Cases outside PayPal’s listing window must already be imported to remain pollable. Uncertain submissions have no automatic unlock. Production readiness and a fresh app-level sandbox end-to-end run remain unverified.
+Public reads filter known private identities and emails, but raw snapshots stored locally may contain personal data. Access control for hosting/storage, retention and backups remain operator work. SQLite and sync serialization require one app process. Cases outside PayPal’s listing window must already be imported to remain pollable. Uncertain submissions have no automatic unlock. The November 5–6 app-level sandbox flow is verified as described above. Production readiness remains unverified. Its seller-favour outcome was forced with a sandbox control and says nothing about real-world win rates.
 
 Problem evidence and actual fee/protection conditions are documented in [impact sources](docs/impact-sources.md). Card-network chargeback survey results are not PayPal dispute statistics or small-seller estimates.
 

@@ -44,7 +44,13 @@ export default function HowItWorks() {
               Review and edit the note and claims. Each saved edit creates a
               version and clears approval. Approval binds the response and PDF
               bytes. Inspect the PDF, then choose to send. The server checks
-              PayPal’s actions again before dispatch.
+              PayPal’s current stage and actions again before dispatch.
+            </p>
+            <p>
+              The outbound packet includes only allowed response content. A text
+              check keeps internal economics, gaps, recommendation and confidence
+              out. Cost and policy records are excluded. Approval shows which
+              items stay out of the packet.
             </p>
           </div>
         </section>
@@ -80,8 +86,8 @@ export default function HowItWorks() {
           <p>
             Read-only replays never call a provider. The recorded
             PP-R-ZAT-10196609 timeline uses sanitized reconstructed snapshots.
-            Its sandbox seller-favour settlement says nothing about real-world
-            outcomes.
+            Its seller-favour outcome was selected with a sandbox control. It
+            says nothing about real-world win rates.
           </p>
           <p>
             Non-replay cases can use the real PayPal sandbox and model only when

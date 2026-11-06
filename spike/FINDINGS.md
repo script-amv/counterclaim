@@ -1,6 +1,6 @@
-# PayPal dispute feasibility spike — 2026-11-05
+# PayPal dispute findings — updated 2026-11-06
 
-**Verdict: documented path exists; real sandbox feasibility remains UNPROVEN.** No credentials were available and no PayPal API calls were made. The local mock proves only the CLI's request construction and chosen model. A forced sandbox seller win does not demonstrate that PayPal would judge the evidence sufficient in production. This is throwaway code, without an AI layer.
+**Verdict: the November 5–6, 2026 (UTC) app run verified a real sandbox path from buyer-filed dispute to synced closure.** Earlier local mock results only verified CLI request construction. The observations below distinguish the app run from the throwaway CLI, which has no AI layer. We chose the seller-favour outcome using a sandbox control; it says nothing about real-world win rates or evidence sufficiency.
 
 ## a) Creating the dispute and API visibility
 
@@ -8,7 +8,7 @@
 
 **Important availability caveat:** PayPal's public specification describes create/cancel/change-reason and certain other operations as limited release. Do not assume ordinary seller client credentials grant buyer-side creation. The browser path avoids depending on that entitlement. [PayPal-owned OpenAPI specification](https://github.com/paypal/paypal-rest-api-specifications/blob/main/openapi/customer_disputes_v1.json).
 
-**Unconfirmed:** no numeric creation-to-list visibility delay or SLA was found in the sources reviewed. Browser eligibility waits, list visibility delays, and webhook latency are separate unknowns. The runbook's 30-second poll interval and 15-minute investigation threshold are operator choices, not PayPal promises. Preserve the merchant-visible case ID and use `show` directly if listing lags.
+**Observed November 5–6 (UTC):** the buyer filed an item-not-received dispute on a $10 sandbox payment. It was readable by ID immediately, appeared in the list endpoint about four minutes later, and was imported by the app’s cron sync. This is not a visibility SLA. Browser eligibility waits and webhook latency remain separate unknowns. The runbook's 30-second poll interval and 15-minute investigation threshold are operator choices, not PayPal promises. Preserve the merchant-visible case ID and use `show` directly if listing lags.
 
 ## b) Evidence formats, reasons and states
 
@@ -27,7 +27,7 @@ The documented reason-to-evidence mapping is:
 
 Reason alone does not authorize an action; current requested evidence, status and links govern. This spike implements only fulfillment evidence for INR/unauthorized cases. [Reason-specific evidence](https://developer.paypal.com/disputes/reasons-evidence/).
 
-**Multipart caveat:** the OpenAPI request body names an optional binary `evidence-file`; the integration examples instead name the attachment `file1`, alongside a JSON `input` part. The CLI uses `input` (application/json), `evidence-file`, and matching `documents[].name`, plus `PROOF_OF_FULFILLMENT` with `evidence_info.tracking_info`. The mock checks this exact encoding. Actual acceptance and attachment association remain unconfirmed because these published representations differ. See the [specification](https://github.com/paypal/paypal-rest-api-specifications/blob/main/openapi/customer_disputes_v1.json) and [multipart example](https://developer.paypal.com/platforms/disputes/integrate-disputes/).
+**Multipart caveat:** the OpenAPI request body names an optional binary `evidence-file`; the integration examples instead name the attachment `file1`, alongside a JSON `input` part. The CLI uses `input` (application/json), `evidence-file`, and matching `documents[].name`, plus `PROOF_OF_FULFILLMENT` with `evidence_info.tracking_info`. The mock checks this exact encoding. In the November 5–6 app run, proof-of-fulfillment evidence with tracking was accepted at both INQUIRY and CHARGEBACK. That verifies the app’s submissions, not every CLI representation or attachment association. See the [specification](https://github.com/paypal/paypal-rest-api-specifications/blob/main/openapi/customer_disputes_v1.json) and [multipart example](https://developer.paypal.com/platforms/disputes/integrate-disputes/).
 
 ## c) Reaching UNDER_REVIEW and sandbox controls
 
@@ -35,7 +35,7 @@ Reason alone does not authorize an action; current requested evidence, status an
 
 **Confirmed:** both sandbox-only controls require `status=UNDER_REVIEW` **and their respective action link**. `require-evidence` with `action=SELLER_EVIDENCE` moves to `WAITING_FOR_SELLER_RESPONSE`; `adjudicate` accepts `adjudication_outcome=SELLER_FAVOR` or `BUYER_FAVOR`. [Sandbox control prerequisites](https://developer.paypal.com/disputes/test-go-live).
 
-**Unconfirmed:** exact timing, whether this account gets either link, and whether one evidence submission immediately restores review. The mock explicitly assumes browser escalation produces review and evidence submission returns to review. Neither assumption is a guarantee. The CLI accepts hyphen/underscore relation spelling, validates action paths, and never follows another API host. The seller update scope is `https://uri.paypal.com/services/disputes/update-seller`. [API specification and security definitions](https://github.com/paypal/paypal-rest-api-specifications/blob/main/openapi/customer_disputes_v1.json).
+**Observed November 5–6 (UTC):** INQUIRY proof-of-fulfillment submission left the case WAITING_FOR_BUYER_RESPONSE. About six minutes after buyer escalation it became CHARGEBACK, seller’s turn. A second submission was accepted and moved it to UNDER_REVIEW. The adjudicate control appeared about 30 minutes after evidence. We selected SELLER_FAVOR; about three minutes later it showed RESOLVED_SELLER_FAVOUR. The app synced each change and showed closure. The require-evidence control was not verified by this flow. The mock’s immediate transitions are not timing guarantees. The CLI accepts hyphen/underscore relation spelling, validates action paths, and never follows another API host. The seller update scope is `https://uri.paypal.com/services/disputes/update-seller`. [API specification and security definitions](https://github.com/paypal/paypal-rest-api-specifications/blob/main/openapi/customer_disputes_v1.json).
 
 ## d) Webhook simulator versus actual sandbox events
 
@@ -56,14 +56,20 @@ Other documented integration traps:
 - `track` uses `POST /v1/shipping/trackers`, with one entry in `trackers[]`. The older `/trackers-batch` is deprecated. [Tracking reference](https://developer.paypal.com/api/tracking/v1/). Tracking upload is separate from dispute evidence and is not proof of actual delivery.
 - Orders capture defaults to a minimal response; the CLI requests `Prefer: return=representation` to expose capture IDs. [Capture headers](https://developer.paypal.com/api/orders/v2/orders-capture).
 
-**Open risks:** browser eligibility/UI failures; no known visibility SLA; missing action links; scope approval; multipart mismatch; real carrier validation; sandbox bugs and eventual transitions; webhook delivery. The local mock supplies successful action links by design. Files are checked by extension/size, not content authenticity. Listing shows the first 50 cases from the last seven days (override `START_TIME`); no pagination is implemented. Network requests time out at 30 seconds, and mutations are not automatically retried or persisted. A timeout needs manual inspection before retrying.
+**Open risks:** browser eligibility/UI failures; no known visibility SLA; missing action links; scope approval; other multipart representations and attachment association; real carrier validation; sandbox bugs and eventual transitions; webhook delivery. The local mock supplies successful action links by design. Files are checked by extension/size, not content authenticity. Listing shows the first 50 cases from the last seven days (override `START_TIME`); no pagination is implemented. Network requests time out at 30 seconds, and mutations are not automatically retried or persisted. A timeout needs manual inspection before retrying.
 
 ## Local verification
 
 Run `node spike/run-mock.mjs`. The runner starts an ephemeral loopback server, exercises every CLI command, simulates browser actions explicitly, validates multipart metadata/file association and tracking, asserts `RESOLVED_SELLER_FAVOUR`, tests premature/resolved actions and production-host rejection, and checks credential/token canaries never appear in output. Transcript: `output/mock-run.txt`. Tested with Node v26.13.0; implementation targets Node 20+ built-in fetch/FormData/Blob. Node 20 itself was not available for a separate runtime run. No npm packages are needed.
 
-## Confirmed live sandbox result — 2026-11-05
+## App investigation and outbound findings — November 5–6, 2026 (UTC)
 
-At `INQUIRY` for `MERCHANDISE_OR_SERVICE_NOT_RECEIVED`, `PROOF_OF_DELIVERY_SIGNATURE` was refused with HTTP 400 `EVIDENCE_TYPE_IS_NOT_ALLOWED`. `PROOF_OF_FULFILLMENT` with tracking information was accepted, and the dispute moved to `UNDER_REVIEW`. This confirms the observed transition for that submission, not a guarantee for every case.
+Real investigations used `@preset/deepseek-mistral-vibe` via Mistral with reported cost 0. The first was rejected when a guard misread a signed negative figure. After the fix, the next recommended fight with high confidence at about 15,000 tokens.
 
-A newly filed dispute took about four minutes to appear in the list endpoint, although it was readable by ID immediately. List visibility can lag direct lookup; this observation is not a visibility SLA.
+At INQUIRY for `MERCHANDISE_OR_SERVICE_NOT_RECEIVED`, `PROOF_OF_DELIVERY_SIGNATURE` was refused with HTTP 400 `EVIDENCE_TYPE_IS_NOT_ALLOWED`. The app now retains and displays PayPal's safe error fields. `PROOF_OF_FULFILLMENT` with tracking was accepted, leaving `WAITING_FOR_BUYER_RESPONSE`, not UNDER_REVIEW.
+
+The buyer's view exposed internal costs in our note. The fix uses an allowlisted outbound packet and one outbound text check: no economics, gaps, recommendation, confidence, or cost/policy records. Excluded items are shown at approval.
+
+When the case became CHARGEBACK after buyer escalation, sync picked up the new stage and the app blocked the old INQUIRY approval. A guard false positive on a carrier-name field was fixed. A new investigation recommended fight, and the second submission was accepted (UNDER_REVIEW).
+
+All four scenario replays were re-recorded November 6 from unedited passing real captures: strong → fight, weak → refund, low-value → offer, injection → fight without repeating the injection. These captures do not establish future repeatability. The eventual seller-favour outcome was selected with sandbox adjudication and says nothing about real-world win rates.
