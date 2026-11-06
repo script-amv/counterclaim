@@ -7,7 +7,7 @@ export type PublicDispute = ReturnType<typeof publicDispute>;
 export type EvidenceStrength = 'unreviewed' | 'rejected' | 'weak' | 'partial' | 'strong';
 export interface CaseQueueRow {
   lastSyncedAt?: string; replay: boolean; title: string; id: string; amount: { currency_code: string; value: string } | null; reason: string | null;
-  stage: string; deadline: string | null; whoseTurn: string; nextActions: string[]; evidenceStrength: EvidenceStrength;
+  status: string; outcome: string | null; stage: string; deadline: string | null; whoseTurn: string; nextActions: string[]; evidenceStrength: EvidenceStrength;
 }
 export interface CasesResponse { cases: CaseQueueRow[] }
 export interface CaseFileVersionResponse {

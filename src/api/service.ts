@@ -38,7 +38,7 @@ export class CaseService {
     });
   }
   async approve(id: string, versionId: string, snapshotFingerprint: string): Promise<Approval> {
-    this.store.assertNotReplay(id);
+    this.store.assertMutable(id);
     const v = this.latest(id); const dispute = this.store.get(id);
     if (!dispute || v.id !== versionId) throw new ApiError(409, 'Case file version changed');
     if (this.store.snapshotFingerprint(id) !== snapshotFingerprint) throw new ApiError(409, 'Case state changed. Review the updated state and approve again.');
@@ -54,7 +54,7 @@ export class CaseService {
     }
     // Recheck under the write lock after asynchronous packet generation.
     return this.store.transaction(() => {
-      this.store.assertNotReplay(id);
+      this.store.assertMutable(id);
       if (this.store.snapshotFingerprint(id) !== snapshotFingerprint) throw new ApiError(409, 'Case state changed. Review the updated state and approve again.');
       if (this.latest(id).id !== versionId) throw new ApiError(409, 'Case file version changed');
       if (packetContainsPrivateText(v.caseFile, v.sources, casePrivateValues(this.store, id))) throw new ApiError(409, 'Packet requires privacy review');

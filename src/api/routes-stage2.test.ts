@@ -184,3 +184,21 @@ it('returns the exact checked packet blocks for review and the same approved PDF
   for (const block of packet.blocks) expect(text).toContain(block.text.replace(/\s+/g, ' '));
   expect(text).not.toContain('outcome');
 });
+
+it('exposes resolved status and outcome in the queue', async () => {
+  runtime.store.save({ ...d, status: 'RESOLVED', dispute_outcome: { outcome_code: 'RESOLVED_SELLER_FAVOUR' }, links: [] });
+  const output = await (await queue()).json();
+  expect(output.cases[0]).toMatchObject({ status: 'RESOLVED', outcome: 'RESOLVED_SELLER_FAVOUR', whoseTurn: 'none', nextActions: [] });
+});
+it.each(['investigate', 'approve'])('refuses %s of a resolved case even with stale action links', async action => {
+  const { version } = await investigate(runtime.store, scripted('strong-delivery'), d.dispute_id);
+  runtime.store.save({ ...d, status: 'RESOLVED' });
+  const fingerprint = runtime.store.snapshotFingerprint(d.dispute_id);
+  const runs = runtime.store.runs(d.dispute_id).length;
+  const result = action === 'investigate' ? await run(request(), context()) : await approve(request('POST', { versionId: version!.id, snapshotFingerprint: fingerprint }), context());
+  expect(result.status).toBe(409);
+  expect(await result.json()).toMatchObject({ error: 'Case is resolved. No response is due.' });
+  expect(runtime.model).not.toHaveBeenCalled();
+  expect(runtime.store.runs(d.dispute_id)).toHaveLength(runs);
+  expect(runtime.store.approvals(d.dispute_id)).toEqual([]);
+});

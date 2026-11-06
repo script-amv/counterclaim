@@ -1,4 +1,4 @@
-import { PendingSubmissionError, ReplayCaseError } from '../cases/storage';
+import { PendingSubmissionError, ReplayCaseError, ResolvedCaseError } from '../cases/storage';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { isIP } from 'node:net';
 import { z } from 'zod';
@@ -33,7 +33,7 @@ export function ipHash(request: Request) {
 }
 export async function handle(work: () => Promise<Response> | Response, state?: () => unknown) {
   try { return await work(); } catch (error) {
-    const e = error instanceof ReplayCaseError ? new ApiError(403, error.message) : error instanceof PendingSubmissionError ? new ApiError(409, 'Submission is pending') : error;
+    const e = error instanceof ReplayCaseError ? new ApiError(403, error.message) : error instanceof ResolvedCaseError ? new ApiError(409, error.message) : error instanceof PendingSubmissionError ? new ApiError(409, 'Submission is pending') : error;
     const response: ApiErrorResponse = { error: e instanceof ApiError ? e.message : 'Request could not be completed' };
     if (e instanceof ApiError && e.status === 409 && state) { try { response.case = state() as ApiErrorResponse['case']; } catch { /* No state available. */ } }
     return json(response, e instanceof ApiError ? e.status : 500);

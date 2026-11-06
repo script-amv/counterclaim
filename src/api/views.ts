@@ -37,7 +37,7 @@ export function queueRow(store: CaseStore, id: string): CaseQueueRow {
     ? `${item} · Order ${typeof reference === 'string' ? reference.replace('DEMO-ORDER-', '').split('-').map(part => part.slice(0, 3).toUpperCase()).join('-') : 'reference unavailable'}`
     : 'Recorded sandbox case';
   return { title, lastSyncedAt: store.lastSyncedAt(id), replay: store.isReplay(id), id, amount: d.dispute_amount ? { currency_code: d.dispute_amount.currency_code, value: d.dispute_amount.value } : null,
-    reason: d.reason ?? null, stage: view.stage, deadline: view.deadline, whoseTurn: view.turn,
+    reason: d.reason ?? null, status: d.status, outcome: view.outcome, stage: view.stage, deadline: view.deadline, whoseTurn: view.turn,
     nextActions: deriveActions(d), evidenceStrength: evidenceStrength(v?.guard, trustedFacts(d, recordsForScenario(store.scenario(id), d))) };
 }
 export function detailView(store: CaseStore, id: string): CaseDetailResponse {

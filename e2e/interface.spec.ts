@@ -41,7 +41,7 @@ test("citation opens the actual highlighted source beside its claim", async ({
   await page.goto("/cases/REPLAY-strong-delivery");
   const shipmentCitation = page
     .getByRole("article")
-    .filter({ hasText: "The carrier recorded the parcel as delivered, and the delivery was signed for." })
+    .filter({ hasText: "The carrier records show the parcel as delivered, the delivery was signed for, and the shipping address matches the order." })
     .getByRole("button", { name: "Open source: Shipment record", exact: true });
   await shipmentCitation.click();
   await expect(
@@ -68,7 +68,7 @@ test("visitor cannot write; replay is read-only even with a valid operator", asy
 }) => {
   await page.goto("/cases/TEST-editable/approve");
   await page
-    .getByLabel("Seller note", { exact: true })
+    .getByLabel("Sent to PayPal and visible to the buyer", { exact: true })
     .fill("A visitor edit that must never be persisted.");
   await page.getByRole("button", { name: "Save new version" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
@@ -101,7 +101,7 @@ test("saving an edit creates a version and clears the bound approval", async ({
     page.getByRole("heading", { name: "Version approved" }),
   ).toBeVisible();
   await page
-    .getByLabel("Seller note", { exact: true })
+    .getByLabel("Sent to PayPal and visible to the buyer", { exact: true })
     .fill(
       "Sandbox demo seller note. Please review the recorded shipment evidence.",
     );
@@ -187,7 +187,7 @@ test("screenshots at desktop and mobile cover screens and key states", async ({
       if (name === "fight") {
         await page
           .getByRole("article")
-          .filter({ hasText: "The carrier recorded the parcel as delivered, and the delivery was signed for." })
+          .filter({ hasText: "The carrier records show the parcel as delivered, the delivery was signed for, and the shipping address matches the order." })
           .getByRole("button", {
             name: "Open source: Shipment record",
             exact: true,
@@ -338,7 +338,7 @@ test("a successful save with a failed refresh locks the stale review", async ({
     page.getByRole("heading", { name: "Version approved" }),
   ).toBeVisible();
   await page
-    .getByLabel("Seller note", { exact: true })
+    .getByLabel("Sent to PayPal and visible to the buyer", { exact: true })
     .fill(
       before.caseFileVersions.at(-1).caseFile.evidence_draft.seller_note +
         " Review the refreshed file.",
@@ -402,7 +402,7 @@ test("a new PayPal stage requires fresh approval and permits a fresh response", 
 test("stale edit shows the first edit and preserves the seller draft", async ({ page, request }) => {
   const before = await (await request.get('/api/cases/TEST-editable')).json();
   await page.goto('/cases/TEST-editable/approve');
-  const note = page.getByLabel('Seller note', { exact: true });
+  const note = page.getByLabel('Sent to PayPal and visible to the buyer', { exact: true });
   const draft = 'Sandbox demo seller note. Keep this unsaved seller draft.';
   await note.fill(draft);
   const first = structuredClone(before.caseFileVersions.at(-1).caseFile);
@@ -450,4 +450,68 @@ test("approval sends the reviewed fingerprint and shows new state on conflict", 
   await expect(page.locator('.case-nav')).toContainText('chargeback');
   await expect(page.getByRole('heading', { name: 'Approval required' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Send approved response' })).toBeDisabled();
+});
+
+
+test('synced sandbox cases show past advice, outcome and sent history without a response CTA', async ({ page, request }) => {
+  const state = await (await request.get('/api/cases/REPLAY-strong-delivery')).json();
+  const id = 'PP-R-CNR-10196701';
+  state.case = { ...state.case, id, replay: false, status: 'RESOLVED', outcome: 'RESOLVED_SELLER_FAVOUR', stage: 'CHARGEBACK', nextActions: [], whoseTurn: 'none', deadline: null };
+  state.dispute = { ...state.dispute, dispute_id: id, status: 'RESOLVED', dispute_life_cycle_stage: 'CHARGEBACK', dispute_outcome: { outcome_code: 'RESOLVED_SELLER_FAVOUR' }, links: [] };
+  state.attempts = [{ id: 'sent', status: 'submitted', action: 'provide-evidence', startedAt: '2026-11-05T01:00:00Z', endedAt: '2026-11-05T01:00:03Z', stage: 'CHARGEBACK' }];
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: state }));
+  await page.goto(`/cases/${id}`);
+  await expect(page.locator('.sandbox')).toContainText('Real PayPal sandbox dispute. Demo seller records.');
+  await expect(page.locator('.case-heading')).toContainText('Advice given');
+  await expect(page.getByRole('heading', { name: 'Fight this.', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: "Resolved in the seller's favour", exact: true })).toBeVisible();
+  await expect(page.locator('.outcome')).toContainText('Sandbox settlement says nothing about real-world evidence quality or outcomes.');
+  await expect(page.locator('.next-step')).toContainText('Case closed');
+  await expect(page.locator('.next-step')).toContainText('Evidence response sent to PayPal on Nov 5, 2026, 01:00:03 UTC. No response is due.');
+  await expect(page.getByRole('link', { name: 'Review response', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Investigate case', exact: true })).toBeDisabled();
+  await page.goto(`/cases/${id}/approve`);
+  await expect(page.getByRole('button', { name: /Approve this version|Approve again|Send approved response/ })).toHaveCount(0);
+  await expect(page.locator('.next-step')).toContainText('No response is due.');
+  state.caseFileVersions = [];
+  state.attempts = [];
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'The case is closed.', exact: true })).toBeVisible();
+  await expect(page.getByText('No response sent through Counterclaim is recorded. No response is due.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Continue by hand', exact: true })).toHaveCount(0);
+  await page.getByRole('link', { name: 'All cases', exact: true }).click();
+  await expect(page.locator('.sandbox')).toContainText('Demo seller data. Nothing here is a live customer dispute.');
+  await page.goto('/cases/REPLAY-strong-delivery');
+  await expect(page.locator('.sandbox')).toContainText('Demo seller data. Nothing here is a live customer dispute.');
+});
+
+test('an open case without actions has no response CTA and does not invent a submission', async ({ page, request }) => {
+  const state = await (await request.get('/api/cases/REPLAY-strong-delivery')).json();
+  state.case.nextActions = [];
+  state.dispute.status = 'UNDER_REVIEW';
+  state.attempts = [];
+  await page.route('**/api/cases/REPLAY-strong-delivery', route => route.fulfill({ json: state }));
+  await page.goto('/cases/REPLAY-strong-delivery');
+  await expect(page.locator('.next-step')).toContainText('No response sent through Counterclaim is recorded. No response is due in the saved PayPal state.');
+  await expect(page.getByRole('link', { name: 'Review response', exact: true })).toHaveCount(0);
+});
+
+test('queue defaults to open cases before resolved cases and shows searchable outcomes', async ({ page, request }) => {
+  const base = (await (await request.get('/api/cases')).json()).cases[0];
+  const cases = [
+    { ...base, id: 'PP-closed', status: 'RESOLVED', outcome: 'RESOLVED_SELLER_FAVOUR', whoseTurn: 'none', deadline: null, nextActions: [] },
+    { ...base, id: 'PP-open-no-deadline', status: 'UNDER_REVIEW', outcome: null, whoseTurn: 'paypal', deadline: null },
+    { ...base, id: 'PP-open-due', status: 'WAITING_FOR_SELLER_RESPONSE', outcome: null, whoseTurn: 'seller', deadline: '2026-11-08T00:00:00Z' },
+  ];
+  await page.route('**/api/cases', route => route.fulfill({ json: { cases } }));
+  await page.goto('/');
+  await expect(page.getByText('Saved locally. Open cases first, then soonest deadline.', { exact: true })).toBeVisible();
+  await expect(page.locator('.ag-row[row-index="0"] a')).toHaveAttribute('href', '/cases/PP-open-due');
+  await expect(page.locator('.ag-row[row-index="1"] a')).toHaveAttribute('href', '/cases/PP-open-no-deadline');
+  const closed = page.locator('.ag-row[row-index="2"]');
+  await expect(closed.locator('[col-id="whoseTurn"]')).toContainText('Resolved');
+  await expect(closed).toContainText("Resolved in the seller's favour");
+  await page.getByRole('searchbox', { name: 'Find a case' }).fill("seller's favour");
+  await expect(page.locator('.ag-row')).toHaveCount(1);
+  await expect(page.locator('.ag-row a')).toHaveAttribute('href', '/cases/PP-closed');
 });

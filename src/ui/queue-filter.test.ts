@@ -3,7 +3,7 @@ import { queueFilterText } from './queue-filter';
 import type { CaseQueueRow } from '../api/contract';
 
 const row: CaseQueueRow = {
-  title: 'Demo desk lamp · Order 2', id: 'REPLAY-weak-delivery',
+  status: 'UNDER_REVIEW', outcome: null, title: 'Demo desk lamp · Order 2', id: 'REPLAY-weak-delivery',
   reason: 'MERCHANDISE_OR_SERVICE_NOT_RECEIVED', stage: 'UNDER_REVIEW',
   evidenceStrength: 'partial', amount: null, deadline: null, whoseTurn: 'seller',
   nextActions: [], replay: true,

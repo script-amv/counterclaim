@@ -8,12 +8,16 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { sandboxLabel } from './case-state';
+const CaseBanner = createContext<(value: { path: string; replay: boolean }) => void>(() => {});
+export const useCaseBanner = () => useContext(CaseBanner);
 const Operator = createContext<{
   execute: (work: (code: string) => void) => void;
 }>({ execute: () => {} });
 export const useOperator = () => useContext(Operator);
 export function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
+  const [bannerCase, setBannerCase] = useState<{ path: string; replay: boolean } | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const pending = useRef<((code: string) => void) | null>(null);
   const [code, setCode] = useState("");
@@ -29,6 +33,7 @@ export function Shell({ children }: { children: ReactNode }) {
   }
   return (
     <Operator.Provider value={{ execute }}>
+      <CaseBanner.Provider value={setBannerCase}>
       <a className="skip" href="#main">
         Skip to case workspace
       </a>
@@ -62,7 +67,7 @@ export function Shell({ children }: { children: ReactNode }) {
       </header>
       <div className="sandbox">
         <span className="sandbox-label">SANDBOX</span>
-        <span>Demo seller data. Nothing here is a live customer dispute.</span>
+        <span>{sandboxLabel(bannerCase?.path === path ? bannerCase.replay : path.startsWith("/cases/") ? null : true)}</span>
         <Link href="/how-it-works#demo">About this demo</Link>
       </div>
       {children}
@@ -123,6 +128,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </button>
         </form>
       </dialog>
+      </CaseBanner.Provider>
     </Operator.Provider>
   );
 }

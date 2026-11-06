@@ -59,3 +59,16 @@ export function fieldValue(value: unknown): string {
 export function fieldLabel(key: string) {
   return ({ value: 'Amount', amount: 'Order amount', signed: 'Signed receipt', address_matches: 'Address matches order', timestamp: 'Recorded on', item_cost: 'Item cost', shipping_cost: 'Shipping cost' } as Record<string,string>)[key] ?? sentence(words(key));
 }
+
+export function paypalOutcome(code: string | null | undefined): string {
+  const labels: Record<string, string> = {
+    RESOLVED_SELLER_FAVOUR: "Resolved in the seller's favour",
+    RESOLVED_BUYER_FAVOUR: "Resolved in the buyer's favour",
+    RESOLVED_WITH_PAYOUT: 'Resolved with a payout',
+    CANCELED_BY_BUYER: 'Cancelled by the buyer',
+    ACCEPTED: 'Claim accepted', DENIED: 'Claim denied',
+    REFUNDED: 'Buyer refunded', CANCELED: 'Dispute cancelled', CANCELLED: 'Dispute cancelled',
+    RESOLVED: 'Resolved', NONE: 'Resolved',
+  };
+  return !code ? 'Resolved' : labels[code] ?? `Resolved (${sentence(words(code))})`;
+}

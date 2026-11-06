@@ -11,7 +11,8 @@ import {
   type ICellRendererParams,
 } from "ag-grid-community";
 import type { CaseQueueRow, CasesResponse } from "@/api/contract";
-import { date, money, reason, words } from "./format";
+import { date, money, reason, words, paypalOutcome } from "./format";
+import { compareQueueDeadlines } from "./case-state";
 import { queueFilterText } from "./queue-filter";
 ModuleRegistry.registerModules([AllCommunityModule]);
 const theme = themeQuartz.withParams({
@@ -106,7 +107,7 @@ export function Queue() {
         headerName: "Respond by",
         width: 158,
         initialSort: "asc",
-        comparator: (a, b) => (a ?? "9999").localeCompare(b ?? "9999"),
+        comparator: (_a, _b, nodeA, nodeB) => compareQueueDeadlines(nodeA.data, nodeB.data),
         cellRenderer: ({ data }: Cell) => {
           const days = data?.deadline
             ? Math.ceil((Date.parse(data.deadline) - Date.now()) / 86400000)
@@ -140,10 +141,10 @@ export function Queue() {
       {
         field: "whoseTurn",
         headerName: "Whose turn",
-        width: 125,
-        cellRenderer: ({ value }: Cell) =>
-          value === "none" ? (
-            "Resolved"
+        minWidth: 260,
+        cellRenderer: ({ value, data }: Cell) =>
+          data?.status === "RESOLVED" ? (
+            <div className="case-cell"><strong>Resolved</strong><small>{paypalOutcome(data.outcome)}</small></div>
           ) : value === "paypal" ? (
             "PayPal"
           ) : value === "seller" ? (
@@ -214,7 +215,7 @@ export function Queue() {
               <span className="count">{rows?.length ?? "—"}</span>
             </h2>
             <p className="muted">
-              Saved locally. Sorted by soonest deadline by default.
+              Saved locally. Open cases first, then soonest deadline.
             </p>
           </div>
           <label className="search">

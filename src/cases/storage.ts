@@ -6,6 +6,7 @@ import { disputeSchema, type Dispute } from '../paypal/schemas';
 import { scenarioIds, type ScenarioId } from '../records';
 import type { AgentRun, CaseFileVersion, Approval, SubmissionAttempt } from '../agent/schema';
 
+export class ResolvedCaseError extends Error {}
 export class PendingSubmissionError extends Error {}
 export class ReplayCaseError extends Error {}
 const migrations = [
@@ -144,6 +145,7 @@ export class CaseStore {
   assertNotReplay(id: string) { if (this.isReplay(id)) throw new ReplayCaseError('Read-only replay: no writes are allowed'); }
   assertMutable(id: string) {
     this.assertNotReplay(id);
+    if (this.get(id)?.status === 'RESOLVED') throw new ResolvedCaseError('Case is resolved. No response is due.');
     if (this.db.prepare("SELECT 1 FROM submission_attempts WHERE dispute_id=? AND status IN ('submitting','unknown')").get(id)) throw new PendingSubmissionError('Submission is pending');
   }
   reserveSubmission(a: SubmissionAttempt) {

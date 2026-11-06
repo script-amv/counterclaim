@@ -9,8 +9,10 @@ import type {
   CaseFileVersionResponse,
   ReadSource,
 } from "@/api/contract";
-import { useOperator } from "./shell";
-import { date, money, reason, sourceName, words, sentence, paypalStatus, fieldValue, fieldLabel } from "./format";
+import { usePathname } from "next/navigation";
+import { caseNextStep } from "./case-state";
+import { useCaseBanner, useOperator } from "./shell";
+import { date, money, reason, sourceName, words, sentence, paypalStatus, fieldValue, fieldLabel, paypalOutcome } from "./format";
 const actions = {
   fight: "provide-evidence",
   offer: "make-offer",
@@ -37,6 +39,11 @@ export function CaseWorkspace({
   const [stale, setStale] = useState(false);
   const [clientUnknown, setClientUnknown] = useState(false);
   const { execute } = useOperator();
+  const setCaseBanner = useCaseBanner();
+  const path = usePathname();
+  useEffect(() => {
+    if (data?.case.id === id) setCaseBanner({ path, replay: data.case.replay || !id.startsWith("PP-") });
+  }, [data?.case.id, data?.case.replay, id, path, setCaseBanner]);
   async function load() {
     try {
       const r = await fetch(`/api/cases/${encodeURIComponent(id)}`);
@@ -163,6 +170,8 @@ export function CaseWorkspace({
       a.stage === (data.dispute.dispute_life_cycle_stage ?? "UNKNOWN"),
   );
   const resolved = data.dispute.status === "RESOLVED";
+  const nextStep = caseNextStep(data);
+  const reviewing = review && nextStep.actionable;
   const action = file ? actions[file.recommendation.action] : null;
   const available = action && data.case.nextActions.includes(action);
   const blocked =
@@ -196,10 +205,11 @@ export function CaseWorkspace({
       <div className="case-heading">
         <div>
           <p className="folio">
-            {review ? "Review & approve" : "Case file"} /{" "}
+            {reviewing ? "Review & approve" : "Case file"} /{" "}
             {reason(data.case.reason)}
           </p>
-          <h1>{review ? "Your response, on record." : verdict}</h1>
+          {resolved && file && <p className="folio">Advice given</p>}
+          <h1>{reviewing ? "Your response, on record." : verdict}</h1>
         </div>
         <div className="case-amount">
           <span>Amount in dispute</span>
@@ -273,7 +283,7 @@ export function CaseWorkspace({
       {resolved && (
         <div className="outcome">
           <h2>
-            {words(data.dispute.dispute_outcome?.outcome_code ?? "Resolved")}
+            {paypalOutcome(data.dispute.dispute_outcome?.outcome_code)}
           </h2>
           <p>
             Recorded sandbox outcome. Sandbox settlement says nothing about
@@ -281,7 +291,10 @@ export function CaseWorkspace({
           </p>
         </div>
       )}
-      {!review && file && (
+      {!file && !nextStep.actionable && (
+        <section className="notice"><h2>{nextStep.heading}</h2><p>{nextStep.message}</p></section>
+      )}
+      {!reviewing && file && (
         <>
           <section
             className={`verdict-sheet ${file.recommendation.action}`}
@@ -298,23 +311,17 @@ export function CaseWorkspace({
               </p>
             </div>
             <div className="next-step">
-              <span>
-                {version?.guard.accepted ? "Your next step" : "Review required"}
-              </span>
-              <p>
-                {version?.guard.accepted
-                  ? "Read the proof and the gaps. Then review the exact response."
-                  : "The guard rejected this file. It cannot be approved."}
-              </p>
-              <Link className="primary" href={`/cases/${id}/approve`}>
+              <span>{!nextStep.actionable ? nextStep.heading : version?.guard.accepted ? nextStep.heading : "Review required"}</span>
+              <p>{!nextStep.actionable || version?.guard.accepted ? nextStep.message : "The guard rejected this file. It cannot be approved."}</p>
+              {nextStep.actionable && <Link className="primary" href={`/cases/${id}/approve`}>
                 Review response
-              </Link>
+              </Link>}
             </div>
           </section>
           <Money data={data} />
         </>
       )}
-      {review ? (
+      {reviewing ? (
         <>
           <div className="step-nav">
             <Link href={`/cases/${id}`}>1. Read the case</Link>
@@ -620,7 +627,7 @@ export function CaseWorkspace({
             {running ? "Investigation running" : "Investigate case"}
           </button>
         </div>
-        {!file && !data.case.replay && <ManualCase />}
+        {!file && !data.case.replay && nextStep.actionable && <ManualCase />}
       </section>
     </main>
   );
