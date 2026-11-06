@@ -1,64 +1,62 @@
 {
-  "origin": "data/eval/2026-11-05T17-30-22.898Z/low-value.json",
+  "origin": "data/eval/2026-11-06T00-57-31.720Z/low-value.json",
   "label": "Recorded model run",
   "caseFile": {
-    "summary": "The buyer opened an item not received dispute for $12.00 on a demo notebook. The parcel was accepted by the carrier and the shipping address matches the order, but there is no delivery confirmation and no signature. The buyer says the parcel has not arrived and is willing to settle for a $6.00 partial refund.",
+    "summary": "The buyer reports the parcel has not arrived and the disputed amount is $12.00. Tracking shows only a carrier acceptance scan, with the shipping address matching the order and no delivery or signature confirmation. The customer has offered to settle for a partial refund of $6.00, and recorded costs of $5.00 mean a win would keep $7.00 while a loss would leave -$5.00.",
     "timeline": [
       {
         "date": "2026-11-01T10:00:00Z",
-        "event": "The buyer ordered one demo notebook for $12.00.",
+        "event": "Order placed for one demo notebook at $12.00.",
         "citations": [
-          "low-value-order-01",
-          "dispute.dispute_amount"
+          "low-value-order-01"
         ]
       },
       {
         "date": "2026-11-02T10:00:00Z",
-        "event": "The seller shipped the parcel. The shipping address matches the order, the delivery was not signed for, and the parcel was still in transit.",
+        "event": "Shipment created with the carrier; the shipping address matches the order and no signature was recorded.",
         "citations": [
           "low-value-shipment-01"
         ]
       },
       {
         "date": "2026-11-03T10:00:00Z",
-        "event": "The carrier recorded an acceptance scan only, with no delivery confirmation.",
+        "event": "Carrier acceptance scan recorded; delivery is not confirmed.",
         "citations": [
           "low-value-tracking_event-01"
         ]
       },
       {
         "date": "2026-11-04T10:00:00Z",
-        "event": "The buyer reported the parcel had not arrived and offered to settle for a $6.00 partial refund. The item not received dispute was opened the same day.",
+        "event": "Customer message says the parcel has not arrived and offers to settle with a partial refund of USD 6.00.",
         "citations": [
-          "low-value-customer_message-01",
-          "dispute.create_time",
-          "dispute.reason"
+          "low-value-customer_message-01"
         ]
       }
     ],
     "claims": [
       {
-        "text": "The buyer disputes the $12.00 payment as an item not received.",
+        "text": "The dispute is for $12.00 and is at the initial dispute stage for item not received.",
         "citations": [
+          "dispute.dispute_amount",
           "dispute.reason",
-          "dispute.dispute_amount"
+          "dispute.dispute_life_cycle_stage"
         ]
       },
       {
-        "text": "The parcel is still in transit and only a carrier acceptance scan exists, so receipt has not been shown.",
+        "text": "The carrier accepted the parcel on November 3, 2026, and tracking still shows it in transit with no delivery confirmation. The shipping address matches the order, and no signature was recorded.",
         "citations": [
           "low-value-shipment-01",
           "low-value-tracking_event-01"
         ]
       },
       {
-        "text": "The shipping address matches the order, and the delivery was not signed for.",
+        "text": "The customer asked for a partial refund of USD 6.00 to settle.",
         "citations": [
-          "low-value-shipment-01"
+          "low-value-customer_message-01"
         ]
       },
       {
-        "text": "Recorded item and shipping costs total $5.00. If the seller wins, the amount kept after costs is $7.00; if the seller loses, the outcome is -$5.00.",
+        "text": "Recorded item and shipping costs total $5.00, so a win would keep $7.00 of the $12.00 disputed amount and a loss would leave -$5.00.",
         "citations": [
           "low-value-cost-01",
           "dispute.dispute_amount"
@@ -81,10 +79,10 @@
     ],
     "recommendation": {
       "action": "offer",
-      "reasoning": "The proof is partial: the address matches and the carrier accepted the parcel, but nothing confirms delivery. The buyer has recorded willingness to settle, so a $6.00 partial refund offer fits the evidence and the small amounts involved.",
+      "reasoning": "Delivery is unconfirmed and only a carrier acceptance scan exists, so the shipment evidence is partial and a full fight is not supported. Because willingness to settle is recorded, a partial refund offer of $6.00 resolves the case for less than the disputed amount.",
       "confidence": {
         "level": "medium",
-        "reason": "The shipment and address records are consistent, but without delivery confirmation the seller cannot fully prove receipt."
+        "reason": "The address match and carrier scan are documented, but there is no delivery or signature confirmation, and the customer has recorded a specific settlement amount."
       },
       "offer_amount": {
         "currency_code": "USD",
@@ -92,22 +90,21 @@
       }
     },
     "evidence_draft": {
-      "seller_note": "The carrier accepted the parcel, but delivery and signature confirmation are unavailable. We can offer a partial refund of $6.00 to resolve this.",
+      "seller_note": "Thank you for your patience. I shipped your order on November 2, 2026 with the carrier shown on the tracking record. The tracking shows the carrier accepted the parcel on November 3, 2026, and it is still in transit, so delivery has not been confirmed. The shipping address matches your order. I understand the parcel has not arrived. I would like to offer a partial refund of $6.00 on the disputed amount of $12.00 to settle this matter. Please let me know if that works for you.",
       "attach_records": [
         "low-value-order-01",
         "low-value-shipment-01",
         "low-value-tracking_event-01",
-        "low-value-customer_message-01",
-        "low-value-cost-01"
+        "low-value-customer_message-01"
       ]
     }
   },
   "run": {
-    "id": "79ac8fd3-74b3-44d7-a1e4-1f4546c44860",
+    "id": "cdefe31e-631c-4a0a-98e0-057e4f8716cd",
     "disputeId": "DEMO-low-value",
     "model": "@preset/deepseek-mistral-vibe",
     "status": "completed",
-    "startedAt": "2026-11-05T17:30:22.916Z",
+    "startedAt": "2026-11-06T01:00:57.156Z",
     "toolCalls": [
       {
         "tool": "get_dispute",
@@ -163,11 +160,6 @@
       },
       {
         "tool": "get_order",
-        "arguments": {},
-        "result": "Read safe case facts"
-      },
-      {
-        "tool": "get_dispute",
         "arguments": {},
         "result": "Read safe case facts"
       }
@@ -234,7 +226,7 @@
           "id": "low-value-order-01",
           "type": "order",
           "timestamp": "2026-11-01T10:00:00.000Z",
-          "source": "Sandbox demo seller store \u2014 synthetic data",
+          "source": "Sandbox demo seller store — synthetic data",
           "content": {
             "order_id": "DEMO-ORDER-low-value",
             "status": "COMPLETED",
@@ -252,7 +244,7 @@
           "id": "low-value-shipment-01",
           "type": "shipment",
           "timestamp": "2026-11-02T10:00:00.000Z",
-          "source": "Sandbox demo seller store \u2014 synthetic data",
+          "source": "Sandbox demo seller store — synthetic data",
           "content": {
             "tracking_number": "DEMO-TRACKING-low-value",
             "carrier_name": "DEMO CARRIER",
@@ -269,7 +261,7 @@
           "id": "low-value-tracking_event-01",
           "type": "tracking_event",
           "timestamp": "2026-11-03T10:00:00.000Z",
-          "source": "Sandbox demo seller store \u2014 synthetic data",
+          "source": "Sandbox demo seller store — synthetic data",
           "content": {
             "tracking_number": "DEMO-TRACKING-low-value",
             "status": "ACCEPTED",
@@ -283,7 +275,7 @@
           "id": "low-value-customer_message-01",
           "type": "customer_message",
           "timestamp": "2026-11-04T10:00:00.000Z",
-          "source": "Sandbox demo seller store \u2014 synthetic data",
+          "source": "Sandbox demo seller store — synthetic data",
           "content": {
             "text": "The parcel has not arrived. I am willing to settle with a partial refund of USD 6.00."
           }
@@ -295,7 +287,7 @@
           "id": "low-value-policy-01",
           "type": "policy",
           "timestamp": "2026-11-01T10:00:00.000Z",
-          "source": "Sandbox demo seller store \u2014 synthetic data",
+          "source": "Sandbox demo seller store — synthetic data",
           "content": {
             "text": "Demo policy: investigate delivery issues using carrier scans. A seller may agree to a refund or settlement. This synthetic store policy does not establish PayPal eligibility or legal rights."
           }
@@ -307,7 +299,7 @@
           "id": "low-value-cost-01",
           "type": "cost",
           "timestamp": "2026-11-01T10:00:00.000Z",
-          "source": "Sandbox demo seller store \u2014 synthetic data",
+          "source": "Sandbox demo seller store — synthetic data",
           "content": {
             "currency_code": "USD",
             "item_cost": "3.00",
@@ -316,15 +308,15 @@
         }
       }
     ],
-    "tokens": 16908,
+    "tokens": 12663,
     "tokensEstimated": false,
-    "turns": 4,
+    "turns": 3,
     "provider": "Mistral",
     "providers": [
       "Mistral"
     ],
     "cost": 0,
-    "endedAt": "2026-11-05T17:32:03.983Z"
+    "endedAt": "2026-11-06T01:02:36.031Z"
   },
   "guard": {
     "accepted": true,

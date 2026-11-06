@@ -1,35 +1,33 @@
 {
-  "origin": "data/eval/2026-11-05T17-16-15.642Z/strong-delivery.json",
+  "origin": "data/eval/2026-11-06T00-57-31.720Z/strong-delivery.json",
   "label": "Recorded model run",
   "caseFile": {
-    "summary": "The buyer says the demo desk lamp never arrived and opened an item not received dispute for $120.00. Carrier records show the parcel was delivered to the order address and the delivery was signed for. Recorded costs are $53.00, so a win keeps $67.00 and a loss means -$53.00.",
+    "summary": "The buyer opened an item-not-received dispute for $120.00 on 2026-11-04. Carrier records show the parcel was delivered on 2026-11-03 with a signature, and the shipping address matches the order. Recorded item and shipping costs total $53.00, so a win keeps $67.00 and a loss leaves -$53.00.",
     "timeline": [
       {
         "date": "2026-11-01T10:00:00Z",
-        "event": "The buyer ordered one demo desk lamp for $120.00.",
+        "event": "Order placed for a demo desk lamp totaling $120.00.",
         "citations": [
-          "strong-delivery-order-01",
-          "dispute.dispute_amount"
+          "strong-delivery-order-01"
         ]
       },
       {
         "date": "2026-11-02T10:00:00Z",
-        "event": "The seller shipped the lamp with tracking through the demo carrier.",
+        "event": "Parcel shipped with a demo carrier; the shipping address matches the order and a signature was recorded.",
         "citations": [
           "strong-delivery-shipment-01"
         ]
       },
       {
         "date": "2026-11-03T10:00:00Z",
-        "event": "The carrier recorded a signed delivery scan, and the shipping address matches the order.",
+        "event": "Tracking shows a signed delivery scan with the address reference matching the order.",
         "citations": [
-          "strong-delivery-tracking_event-01",
-          "strong-delivery-shipment-01"
+          "strong-delivery-tracking_event-01"
         ]
       },
       {
         "date": "2026-11-04T10:00:00Z",
-        "event": "The buyer messaged that the parcel had not arrived, and an initial dispute was opened the same day.",
+        "event": "The buyer messaged that the parcel had not arrived, and an initial dispute for item not received was opened the same day.",
         "citations": [
           "strong-delivery-customer_message-01",
           "dispute.create_time"
@@ -38,31 +36,30 @@
     ],
     "claims": [
       {
-        "text": "The buyer disputes a $120.00 charge for an item not received.",
+        "text": "The dispute is for item not received and the disputed amount is $120.00.",
         "citations": [
-          "dispute.dispute_amount",
-          "dispute.reason"
+          "dispute.reason",
+          "dispute.dispute_amount"
         ]
       },
       {
-        "text": "The carrier recorded the parcel as delivered, and the delivery was signed for.",
-        "citations": [
-          "strong-delivery-shipment-01",
-          "strong-delivery-tracking_event-01"
-        ]
-      },
-      {
-        "text": "The shipping address matches the order.",
+        "text": "The carrier records show the parcel as delivered, the delivery was signed for, and the shipping address matches the order.",
         "citations": [
           "strong-delivery-shipment-01",
           "strong-delivery-tracking_event-01"
         ]
       },
       {
-        "text": "Recorded item and shipping costs total $53.00, so a win keeps $67.00 and a loss means -$53.00.",
+        "text": "Recorded item and shipping costs are $53.00, so the amount kept after costs on a win is $67.00 and the outcome on a loss is -$53.00.",
         "citations": [
           "strong-delivery-cost-01",
           "dispute.dispute_amount"
+        ]
+      },
+      {
+        "text": "The buyer's message states the parcel had not arrived.",
+        "citations": [
+          "strong-delivery-customer_message-01"
         ]
       }
     ],
@@ -74,28 +71,27 @@
     ],
     "recommendation": {
       "action": "fight",
-      "reasoning": "Delivery, signature and address match are all supported by carrier records, so the seller has strong proof the item reached the buyer. A win keeps $67.00 after $53.00 in recorded costs, while a loss means -$53.00.",
+      "reasoning": "Delivery, signature and address match are all supported by the carrier records, which answers the item-not-received claim. The disputed amount of $120.00 less $53.00 in recorded costs leaves $67.00 if the case is won, against -$53.00 if it is lost.",
       "confidence": {
         "level": "high",
-        "reason": "The shipment record and the tracking event agree that the parcel was delivered and signed for at the order address."
+        "reason": "The shipment and tracking records agree on delivery, signature and a matching address, and the buyer's message does not dispute the delivery address."
       }
     },
     "evidence_draft": {
-      "seller_note": "The lamp was shipped with tracking. The carrier recorded a signed delivery to the order address. I am asking PayPal to review the delivery scan and signature confirmation.",
+      "seller_note": "Thank you for your message. I checked the delivery records for your order. The parcel was shipped on 2026-11-02 with the carrier and the shipping address matches the order. Tracking shows the parcel was delivered on 2026-11-03, and the delivery was signed for. The signed delivery scan and the matching address reference are attached. The disputed amount is $120.00. Please review the attached delivery records.",
       "attach_records": [
         "strong-delivery-order-01",
         "strong-delivery-shipment-01",
-        "strong-delivery-tracking_event-01",
-        "strong-delivery-cost-01"
+        "strong-delivery-tracking_event-01"
       ]
     }
   },
   "run": {
-    "id": "17828c7d-c27e-475d-b5c3-c67d6c0779bb",
+    "id": "7e5fd454-20b4-4491-a6e3-6a715fb9459c",
     "disputeId": "DEMO-strong-delivery",
     "model": "@preset/deepseek-mistral-vibe",
     "status": "completed",
-    "startedAt": "2026-11-05T17:16:15.654Z",
+    "startedAt": "2026-11-06T00:57:31.732Z",
     "toolCalls": [
       {
         "tool": "get_dispute",
@@ -155,11 +151,9 @@
         "result": "Read safe case facts"
       },
       {
-        "tool": "read_record",
-        "arguments": {
-          "id": "strong-delivery-order-01"
-        },
-        "result": "Read demo seller record"
+        "tool": "get_order",
+        "arguments": {},
+        "result": "Read safe case facts"
       }
     ],
     "sources": [
@@ -224,7 +218,7 @@
           "id": "strong-delivery-order-01",
           "type": "order",
           "timestamp": "2026-11-01T10:00:00.000Z",
-          "source": "Sandbox demo seller store \u2014 synthetic data",
+          "source": "Sandbox demo seller store — synthetic data",
           "content": {
             "order_id": "DEMO-ORDER-strong-delivery",
             "status": "COMPLETED",
@@ -242,7 +236,7 @@
           "id": "strong-delivery-shipment-01",
           "type": "shipment",
           "timestamp": "2026-11-02T10:00:00.000Z",
-          "source": "Sandbox demo seller store \u2014 synthetic data",
+          "source": "Sandbox demo seller store — synthetic data",
           "content": {
             "tracking_number": "DEMO-TRACKING-strong-delivery",
             "carrier_name": "DEMO CARRIER",
@@ -259,7 +253,7 @@
           "id": "strong-delivery-tracking_event-01",
           "type": "tracking_event",
           "timestamp": "2026-11-03T10:00:00.000Z",
-          "source": "Sandbox demo seller store \u2014 synthetic data",
+          "source": "Sandbox demo seller store — synthetic data",
           "content": {
             "tracking_number": "DEMO-TRACKING-strong-delivery",
             "status": "DELIVERED",
@@ -273,7 +267,7 @@
           "id": "strong-delivery-customer_message-01",
           "type": "customer_message",
           "timestamp": "2026-11-04T10:00:00.000Z",
-          "source": "Sandbox demo seller store \u2014 synthetic data",
+          "source": "Sandbox demo seller store — synthetic data",
           "content": {
             "text": "The parcel has not arrived. Please check the delivery."
           }
@@ -285,7 +279,7 @@
           "id": "strong-delivery-policy-01",
           "type": "policy",
           "timestamp": "2026-11-01T10:00:00.000Z",
-          "source": "Sandbox demo seller store \u2014 synthetic data",
+          "source": "Sandbox demo seller store — synthetic data",
           "content": {
             "text": "Demo policy: investigate delivery issues using carrier scans. A seller may agree to a refund or settlement. This synthetic store policy does not establish PayPal eligibility or legal rights."
           }
@@ -297,7 +291,7 @@
           "id": "strong-delivery-cost-01",
           "type": "cost",
           "timestamp": "2026-11-01T10:00:00.000Z",
-          "source": "Sandbox demo seller store \u2014 synthetic data",
+          "source": "Sandbox demo seller store — synthetic data",
           "content": {
             "currency_code": "USD",
             "item_cost": "45.00",
@@ -306,15 +300,15 @@
         }
       }
     ],
-    "tokens": 19830,
+    "tokens": 16372,
     "tokensEstimated": false,
-    "turns": 5,
+    "turns": 4,
     "provider": "Mistral",
     "providers": [
       "Mistral"
     ],
     "cost": 0,
-    "endedAt": "2026-11-05T17:18:35.404Z"
+    "endedAt": "2026-11-06T00:59:09.733Z"
   },
   "guard": {
     "accepted": true,

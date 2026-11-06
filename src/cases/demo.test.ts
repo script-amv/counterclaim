@@ -15,13 +15,31 @@ it('seeds five demo cases from accepted recorded outputs with distinct strength 
     expect(d.case.title).toMatch(/Demo (desk lamp|notebook) · Order/);
     expect(d.caseFileVersions.at(-1)?.guard.accepted).toBe(true);
     expect(d.runs.at(-1)?.model).toBe('@preset/deepseek-mistral-vibe');
-    expect(d.runs.at(-1)?.startedAt).toMatch(/^2026-11-05/);
+    expect(d.runs.at(-1)?.startedAt).toMatch(/^2026-11-06/);
   }
   expect(store.history('PP-R-ZAT-10196609')).toHaveLength(11);
   expect(queueRow(store, 'PP-R-ZAT-10196609').amount).toBeNull();
   expect(store.ids().map(id => queueRow(store, id)).filter(r => r.whoseTurn !== 'none').reduce((sum,r) => sum + Number(r.amount?.value ?? 0), 0)).toBe(372);
   seedDemo(store);
   expect(store.versions('REPLAY-strong-delivery')).toHaveLength(1);
+  store.close();
+});
+it('refreshes stale capture provenance even when the model and case file match', () => {
+  const store = new CaseStore(':memory:');
+  seedDemo(store);
+  const id = 'REPLAY-strong-delivery';
+  const originalRun = store.runs(id)[0]!;
+  const originalVersion = store.versions(id)[0]!;
+  store.saveRun({ ...originalRun, id: 'old-run', startedAt: '2026-11-05T17:16:15.654Z', tokens: 1 });
+  store.importReplayVersion({ ...originalVersion, id: 'old-version', runId: 'old-run' });
+  seedDemo(store);
+  expect(store.versions(id)).toHaveLength(3);
+  expect(store.runs(id).at(-1)).toEqual({ ...originalRun, id: expect.any(String) });
+  expect(store.versions(id).at(-1)?.runId).toBe(store.runs(id).at(-1)?.id);
+  expect(store.runs(id).find(run => run.id === 'old-run')?.tokens).toBe(1);
+  expect(() => store.assertMutable(id)).toThrow('Read-only replay');
+  seedDemo(store);
+  expect(store.versions(id)).toHaveLength(3);
   store.close();
 });
 it('upgrades authored replays without unlocking service writes or overwriting history', () => {

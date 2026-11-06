@@ -50,5 +50,7 @@ export interface SubmissionAttempt {
 export interface SubmissionContent {
   versionId: string; stage: string; action: SubmissionAction; note: string;
   offer?: { currency_code: string; value: string };
+  offerType?: import('../paypal/client').MakeOfferInput['offer_type'];
+  refund?: { currency_code: string; value: string };
   evidence?: { filename: string; pdfBase64: string; input: import('../paypal/client').EvidenceInput };
 }

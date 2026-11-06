@@ -90,7 +90,7 @@ export class CaseService {
     try { this.store.reserveSubmission(attempt); } catch { throw new ApiError(409, 'Submission already recorded for this stage'); }
     try {
       if (content.action === 'provide-evidence') await this.paypal.provideEvidence(id, content.evidence!.input, evidenceFile!);
-      else if (content.action === 'make-offer') await this.paypal.makeOffer(id, { note: content.note, offer_type: 'REFUND', offer_amount: content.offer });
+      else if (content.action === 'make-offer') await this.paypal.makeOffer(id, { note: content.note, offer_type: content.offerType ?? 'REFUND', offer_amount: content.offer, ...(content.refund ? { refund_amount: content.refund } : {}) });
       else await this.paypal.acceptClaim(id, { note: content.note });
       attempt.status = 'submitted';
     } catch (error) {

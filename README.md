@@ -17,7 +17,7 @@ Open `PP-R-ZAT-10196609` for the reconstructed real sandbox timeline. Replays ca
 | PayPal integration | REST client is fixed to the real PayPal **sandbox** origin. It supports dispute reads, evidence, offers, claim acceptance and webhook signature verification. There is no production mode. |
 | Recorded sandbox case | The design records a real Nov 5 payment-to-resolution run. Eleven snapshots reconstruct sanitized state summaries; they are not raw API responses. The terminal state comes from the supplied design, not a retained terminal response. [Trace provenance](src/paypal/__fixtures__/trace/README.md). |
 | Seller evidence | Orders, shipments, tracking, policies, costs and messages are synthetic demo records, not connected store or carrier data. Unassigned sandbox cases have no seller records. |
-| Replay case files | Four recorded model outputs captured Nov 5 through OpenRouter, reporting provider Mistral and zero cost, using `@preset/deepseek-mistral-vibe`. The underlying model was not reported. Current guards revalidate these outputs offline; the weak-delivery output originally hit a false positive. [Capture provenance](src/records/recorded-runs/README.md). |
+| Replay case files | Four unedited model outputs captured Nov 6, 2026 through OpenRouter, reporting provider Mistral and zero cost, using `@preset/deepseek-mistral-vibe`. The underlying model was not reported. All four captures passed the current prompt/guard; imports revalidate them offline. [Capture provenance](src/records/recorded-runs/README.md). |
 | Live investigation | An operator can explicitly investigate a non-replay case using the configured model. The model has read tools only and cannot submit. |
 
 **Sandbox settlement says nothing about real-world outcomes.** The recorded seller-favour resolution used PayPal’s sandbox adjudication control. It does not demonstrate that the evidence would win a real claim, and Counterclaim promises neither wins nor recovery rates.
@@ -51,7 +51,7 @@ npm run seed-demo
 npm run dev:offline
 ```
 
-Open `http://localhost:3000`. Seeding imports four recorded model replays and the reconstructed sandbox timeline into `./data/counterclaim.db`, revalidates them with the current guard, and is idempotent. The offline launcher disables dotenv loading and blocks remote fetch. It cannot perform live investigations or submissions.
+Open `http://localhost:3000`. Seeding imports four recorded model replays and the reconstructed sandbox timeline into `./data/counterclaim.db`, revalidates them with the current guard, and is idempotent. Existing marked replays receive the fresh case file and full capture provenance as a new version; older runs and versions remain in history. The offline launcher disables dotenv loading and blocks remote fetch. It cannot perform live investigations or submissions.
 
 For sandbox integration, configure process/host environment variables below. Local `npm run dev` uses Next’s normal dotenv loading behavior; `.env.example` lists most settings. Never publish secrets or put them in `NEXT_PUBLIC_*` variables. Production compilation uses `scripts/build-env.cjs` to disable dotenv loading; clients initialize lazily.
 
@@ -98,6 +98,7 @@ npm run lint
 npm run typecheck
 npm test
 npm run build
+node scripts/run-ts.mjs scripts/import-recorded-runs.ts --check data/eval/2026-11-06T00-57-31.720Z
 npx playwright install chromium
 npm run e2e
 ```
@@ -140,7 +141,7 @@ Next.js, React, TypeScript, Node `node:sqlite`, PayPal sandbox REST APIs, OpenRo
 
 ## Limitations
 
-Sandbox only; one seller; synthetic store records; no live store/carrier integration or verified runtime Orders linkage. Webhook delivery and text-only accept-claim metadata were not exercised by the recorded spike. Current guard acceptance of the replay fixtures includes offline revalidation; it is not proof of two consecutive passing live evaluations, which were not established in the earlier capped evaluation. Prompt-injection checks can miss attacks and reject valid prose. No demonstrated time saving, win-rate improvement or real seller revenue impact is claimed.
+Sandbox only; one seller; synthetic store records; no live store/carrier integration or verified runtime Orders linkage. Webhook delivery and text-only accept-claim metadata were not exercised by the recorded spike. The Nov 6 capture batch passed all four scenarios once; imports also revalidate offline. This does not establish repeatability across future live evaluations. Prompt-injection checks can miss attacks and reject valid prose. No demonstrated time saving, win-rate improvement or real seller revenue impact is claimed.
 
 Public reads filter known private identities and emails, but raw snapshots stored locally may contain personal data. Access control for hosting/storage, retention and backups remain operator work. SQLite and sync serialization require one app process. Cases outside PayPal’s listing window must already be imported to remain pollable. Uncertain submissions have no automatic unlock. Production readiness and a fresh app-level sandbox end-to-end run remain unverified.
 

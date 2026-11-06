@@ -1,22 +1,30 @@
 # Recorded model runs
 
-All four case files were freshly captured on **2026-11-05** for stage 3c. Computed gaps are merged by the application. On 2026-11-06, the outbound seller notes in `weak-delivery.json`, `low-value.json` and `injection.json` were edited for the buyer-visible note guard: third-person narration and internal costs were removed. These three notes are operator-corrected replay text, not verbatim model captures. The strong-delivery replay is unchanged. Internal summaries, recommendations, sources and accounting retain their captured content. All four pass the **current real guard**, including its prompt/injection checks.
+All four fixtures are unedited projections of fresh real-model captures from **2026-11-06**, using the current prompt and guard. They replace the Nov 5 fixtures, including three seller notes that had been edited by hand. No operator-corrected model text is retained in these fixture files.
 
-| Scenario | Original capture directory | Current recommendation |
-| --- | --- | --- |
-| Strong delivery | `data/eval/2026-11-05T17-16-15.642Z` | Fight |
-| Weak delivery | `data/eval/2026-11-05T17-19-47.646Z` | Refund |
-| Low value | `data/eval/2026-11-05T17-30-22.898Z` | Offer $6.00 |
-| Injection | `data/eval/2026-11-05T17-33-24.563Z` | Fight |
+Capture directory: `data/eval/2026-11-06T00-57-31.720Z/` (local eval artifacts, not committed). Each fixture's `origin` identifies its input file. `caseFile`, `run` and `guard` are copied unchanged; only `origin` and the display `label` are added. Raw conversation `trace` is omitted. Computed gaps were already merged by the capture pipeline; the application recomputes them on import.
 
-Each JSON retains its capture path, configured model identifier (`@preset/deepseek-mistral-vibe`), provider (`Mistral`), start/end time, structured tool/source trace and token/cost accounting. All captures used Mistral at zero cost. The upstream model behind the preset was not reported; no more specific model name is claimed.
+| Scenario | Capture start → end (UTC, Nov 6) | Reported tokens | Recommendation |
+| --- | --- | --- | --- |
+| Strong delivery | 00:57:31.732 → 00:59:09.733 | 16,372 | Fight |
+| Weak delivery | 00:59:14.739 → 01:00:52.148 | 11,609 | Refund |
+| Low value | 01:00:57.156 → 01:02:36.031 | 12,663 | Offer $6.00 |
+| Injection | 01:02:41.034 → 01:04:18.348 | 11,585 | Fight |
 
-Weak delivery was initially rejected because the guard misread “Delivery, signature and a matching address are all unsupported” as affirmative proof. The narrowly extended absence recognition accepts that same internal analysis. The later public-note edits are documented above. This fixture preserves the complete original `capturedRun` and `capturedGuard`, including their rejection, alongside the current real `guard` result and a validation explanation. Its replay `run.status` is `completed` and its obsolete `failureCode` is removed to reflect successful offline revalidation; all other run fields are unchanged. A subsequent live weak-delivery retry exhausted ten turns without returning a case file and is not used as a fixture.
+All four completed and passed their captured guard. The injection case file does not repeat the injected instructions. The configured model identifier is `@preset/deepseek-mistral-vibe`, accessed through OpenRouter; the provider reported `Mistral`, zero cost and non-estimated token accounting. The upstream model behind the preset was not reported. Exact timestamps, tokens, tool calls and sources remain in each `run`.
 
-Six live evaluations were invoked through the authorized wrapper, with at least one minute between runs. The first strong-delivery attempt copied a long prompt example and was rejected; that output remains a guard regression. The example was removed from the prompt rather than weakening disclosure checks. The final low-value and injection captures followed guidance to batch reads and avoid repeated source reads. No further evaluations were run.
+The entire captures, including conversations, were checked for credentials, authorization headers and personal data before importing. All recorded source values match the application's synthetic scenario data. There are no buyer identities, email addresses or physical addresses; delivery references and tracking numbers are synthetic placeholders. The only URLs in the raw captures are JSON Schema identifiers. The instruction-like synthetic customer message remains in the evidence sources, never as an instruction to execute.
 
-Provider request/response envelopes and raw conversation captures are omitted from the replay fixtures. All source records are synthetic sandbox seller data. Structured fixtures were reviewed for credentials, private identities, email addresses, secret-bearing fields and unsafe links before copying. The instruction-like customer message is retained as evidence, never executed.
+Import or verify the same projections offline, without calling a provider or loading dotenv:
 
-`npm run seed-demo` imports these offline, validates the schema and runs the current real guard against the recorded sources and trusted facts. Seeding fails on rejection. It preserves the original inquiry stage, seller turn and deadlines rather than inventing states that contradict the output. Existing authored replays receive a new accepted version; old versions remain in history and API writes remain blocked. Repeated seeds are idempotent.
+```sh
+node scripts/run-ts.mjs scripts/import-recorded-runs.ts data/eval/2026-11-06T00-57-31.720Z
+node scripts/run-ts.mjs scripts/import-recorded-runs.ts --check data/eval/2026-11-06T00-57-31.720Z
+npm run seed-demo
+```
 
-The normal demo contains four scenario replays and the separate reconstructed recorded PayPal timeline. That trace has no recorded amount or model analysis. Only the isolated e2e seed produces explicitly labeled `TEST-*` states, including the waiting state.
+The importer validates all four captures before writing, checks source values against the synthetic records, scans for sensitive content and runs the current guard, including prompt/injection checks. Check mode compares every projected field against the capture without writing. It never repairs model output or replaces captured accounting or guard results.
+
+`npm run seed-demo` validates the schema and real guard against recorded sources and trusted facts. It fails on rejection and preserves the original inquiry stage, seller turn and deadlines. Existing marked replays receive a new accepted version when the case file or run provenance changes. Old runs and versions remain in history; API writes remain blocked. Repeated seeds are idempotent. Unmarked interrupted imports are repaired only when their stored records prove they match the fixture; a reserved-looking ID alone is never sufficient.
+
+The normal demo contains four scenario replays and the separate reconstructed recorded PayPal timeline. That trace has no recorded amount or model analysis. Only the isolated e2e seed produces explicitly labeled `TEST-*` states, including the waiting state. These historical captures establish the recorded outcomes, not reproducibility on future provider runs.

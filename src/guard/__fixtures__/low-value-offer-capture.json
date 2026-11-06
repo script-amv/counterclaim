@@ -1,0 +1,107 @@
+{
+  "replies": [
+    {
+      "provider": "Mistral",
+      "content": "I'll start by reading the dispute and listing the available records.\n\n",
+      "toolCalls": [
+        {
+          "id": "chatcmpl-tool-8ba1a25222b5ea79",
+          "name": "get_dispute",
+          "arguments": "{}"
+        },
+        {
+          "id": "chatcmpl-tool-a7a05a5705c39c9d",
+          "name": "list_records",
+          "arguments": "{}"
+        }
+      ],
+      "usage": {
+        "total_tokens": 2422,
+        "cost": 0
+      }
+    },
+    {
+      "provider": "Mistral",
+      "content": "Now I'll read all the listed records and attempt the order lookup.\n\n",
+      "toolCalls": [
+        {
+          "id": "chatcmpl-tool-8a922c2c3a78df95",
+          "name": "read_record",
+          "arguments": "{\"id\": \"low-value-order-01\"}"
+        },
+        {
+          "id": "chatcmpl-tool-8b8b654da9b329e8",
+          "name": "read_record",
+          "arguments": "{\"id\": \"low-value-shipment-01\"}"
+        },
+        {
+          "id": "chatcmpl-tool-8ac7122864210a46",
+          "name": "read_record",
+          "arguments": "{\"id\": \"low-value-tracking_event-01\"}"
+        },
+        {
+          "id": "chatcmpl-tool-a4dcf57dd71574fa",
+          "name": "read_record",
+          "arguments": "{\"id\": \"low-value-customer_message-01\"}"
+        },
+        {
+          "id": "chatcmpl-tool-902fb713ac3b3476",
+          "name": "read_record",
+          "arguments": "{\"id\": \"low-value-policy-01\"}"
+        },
+        {
+          "id": "chatcmpl-tool-8fe901e279fa0db0",
+          "name": "read_record",
+          "arguments": "{\"id\": \"low-value-cost-01\"}"
+        },
+        {
+          "id": "chatcmpl-tool-b87fe80ae9fd5c39",
+          "name": "get_order",
+          "arguments": "{}"
+        }
+      ],
+      "usage": {
+        "total_tokens": 3589,
+        "cost": 0
+      }
+    },
+    {
+      "provider": "Mistral",
+      "content": null,
+      "toolCalls": [
+        {
+          "id": "chatcmpl-tool-aef8652c20313f1a",
+          "name": "get_order",
+          "arguments": "{}"
+        }
+      ],
+      "usage": {
+        "total_tokens": 6164,
+        "cost": 0
+      }
+    },
+    {
+      "provider": "Mistral",
+      "content": null,
+      "toolCalls": [
+        {
+          "id": "chatcmpl-tool-8d93a45127b897b3",
+          "name": "get_order",
+          "arguments": "{}"
+        }
+      ],
+      "usage": {
+        "total_tokens": 5888,
+        "cost": 0
+      }
+    },
+    {
+      "provider": "Mistral",
+      "content": "```json\n{\n  \"summary\": \"The buyer opened an item-not-received dispute for $12.00 USD on a demo notebook order. The parcel shows only a carrier acceptance scan, with no confirmed delivery or signature, though the shipping address matches the order. Recorded costs are $5.00 USD, so a win would keep $7.00 USD and a loss would leave -$5.00 USD.\",\n  \"timeline\": [\n    {\n      \"date\": \"2026-11-01T10:00:00Z\",\n      \"event\": \"The order for one demo notebook was placed and is marked completed, at $12.00 USD.\",\n      \"citations\": [\"low-value-order-01\", \"dispute.dispute_amount\"]\n    },\n    {\n      \"date\": \"2026-11-02T10:00:00Z\",\n      \"event\": \"The parcel was handed to the demo carrier. The shipping address matches the order, the delivery was not signed for, and the status is in transit.\",\n      \"citations\": [\"low-value-shipment-01\"]\n    },\n    {\n      \"date\": \"2026-11-03T10:00:00Z\",\n      \"event\": \"The carrier recorded an acceptance scan only; delivery is not confirmed.\",\n      \"citations\": [\"low-value-tracking_event-01\"]\n    },\n    {\n      \"date\": \"2026-11-04T10:00:00Z\",\n      \"event\": \"An item-not-received dispute was opened, and a message records willingness to settle with a partial refund of $6.00 USD.\",\n      \"citations\": [\"dispute.create_time\", \"dispute.reason\", \"low-value-customer_message-01\"]\n    }\n  ],\n  \"claims\": [\n    {\n      \"text\": \"The order was for one demo notebook at $12.00 USD and is marked completed.\",\n      \"citations\": [\"low-value-order-01\", \"dispute.dispute_amount\"]\n    },\n    {\n      \"text\": \"The parcel is in transit with only a carrier acceptance scan, and no delivery is confirmed.\",\n      \"citations\": [\"low-value-shipment-01\", \"low-value-tracking_event-01\"]\n    },\n    {\n      \"text\": \"The shipping address matches the order, and the delivery was not signed for.\",\n      \"citations\": [\"low-value-shipment-01\"]\n    },\n    {\n      \"text\": \"A message records willingness to settle with a partial refund of $6.00 USD.\",\n      \"citations\": [\"low-value-customer_message-01\"]\n    }\n  ],\n  \"gaps\": [],\n  \"recommendation\": {\n    \"action\": \"offer\",\n    \"reasoning\": \"Delivery is not confirmed, so a full fight is not supported, but the address match and the recorded willingness to settle make a partial offer the practical path. An offer of $6.00 USD matches the amount proposed in the message and stays above the $5.00 USD recorded costs.\",\n    \"confidence\": {\n      \"level\": \"medium\",\n      \"reason\": \"The address match and settlement message are documented, but the carrier shows only an acceptance scan with no delivery or signature.\"\n    },\n    \"offer_amount\": {\n      \"currency_code\": \"USD\",\n      \"value\": \"6.00\"\n    }\n  },\n  \"evidence_draft\": {\n    \"seller_note\": \"Thank you for your message. The order was shipped on November 2, 2026 with the demo carrier, and the shipping address matches the order. Tracking shows a carrier acceptance scan on November 3, 2026, and delivery has not been confirmed. The delivery was not signed for. The disputed amount is $12.00 USD, and I would like to offer a partial refund of $6.00 USD to settle this. Please let me know if that works for you.\",\n    \"attach_records\": [\n      \"low-value-order-01\",\n      \"low-value-shipment-01\",\n      \"low-value-tracking_event-01\",\n      \"low-value-customer_message-01\"\n    ]\n  }\n}\n```",
+      "usage": {
+        "total_tokens": 6461,
+        "cost": 0
+      }
+    }
+  ]
+}

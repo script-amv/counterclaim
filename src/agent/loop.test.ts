@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import lowValueCapture from '../guard/__fixtures__/low-value-offer-capture.json';
 import { CaseStore } from '../cases/storage';
 import { investigate, READ_TOOLS } from './loop';
 import { runView } from '../api/views';
@@ -140,5 +141,17 @@ it('persists rejection field paths and rule names without private values', async
       expect(reasons).not.toContain(privateText);
       expect(JSON.stringify(stored)).not.toContain(privateText);
     }
+  } finally { store.close(); }
+});
+
+// Replay the real eval's replies through the same investigation and guard path, offline.
+it('accepts the 2026-11-06 low-value capture with calendar days matching internal costs', async () => {
+  const { store, dispute } = setup('low-value');
+  try {
+    const { run, version } = await investigate(store, new ScriptedProvider(structuredClone(lowValueCapture.replies)), dispute.dispute_id);
+    expect(version?.caseFile.evidence_draft.seller_note).toBe('Thank you for your message. The order was shipped on November 2, 2026 with the demo carrier, and the shipping address matches the order. Tracking shows a carrier acceptance scan on November 3, 2026, and delivery has not been confirmed. The delivery was not signed for. The disputed amount is $12.00 USD, and I would like to offer a partial refund of $6.00 USD to settle this. Please let me know if that works for you.');
+    expect(version?.guard).toMatchObject({ accepted: true, reasons: [] });
+    expect(run.status).toBe('completed');
+    expect(version?.caseFile.recommendation).toMatchObject({ action: 'offer', offer_amount: { currency_code: 'USD', value: '6.00' } });
   } finally { store.close(); }
 });

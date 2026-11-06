@@ -17,6 +17,8 @@ export function seedDemo(store: CaseStore) {
       const d = syntheticDispute(scenario);
       d.dispute_id = `REPLAY-${scenario}`;
       const existing = store.get(d.dispute_id);
+      // IDs change during import; every other run field is recorded provenance.
+      const recordedRun = (run: AgentRun) => JSON.stringify({ ...run, id: recorded.run.id, disputeId: recorded.run.disputeId }) === JSON.stringify(recorded.run);
 
       const facts = trustedFacts(d, recordsForScenario(scenario));
       const caseFile = mergeComputedGaps(caseFileSchema.parse(recorded.caseFile), facts);
@@ -27,7 +29,6 @@ export function seedDemo(store: CaseStore) {
         // A reserved-looking ID alone is not evidence of an interrupted import.
         const runs = store.runs(d.dispute_id);
         const versions = store.versions(d.dispute_id);
-        const recordedRun = (run: AgentRun) => JSON.stringify({ ...run, id: recorded.run.id, disputeId: recorded.run.disputeId }) === JSON.stringify(recorded.run);
         const proven = store.scenario(d.dispute_id) === scenario &&
           store.history(d.dispute_id).every(e => JSON.stringify(e.snapshot) === JSON.stringify(d)) &&
           runs.length > 0 && runs.every(recordedRun) &&
@@ -37,7 +38,7 @@ export function seedDemo(store: CaseStore) {
         store.markReplay(d.dispute_id);
       }
       const previous = store.versions(d.dispute_id).at(-1);
-      if (previous && JSON.stringify(previous.caseFile) === JSON.stringify(caseFile) && store.runs(d.dispute_id).some(r => r.id === previous.runId && r.model === recorded.run.model)) continue;
+      if (previous && JSON.stringify(previous.caseFile) === JSON.stringify(caseFile) && store.runs(d.dispute_id).some(r => r.id === previous.runId && recordedRun(r))) continue;
       store.save(d);
       store.assignScenario(d.dispute_id, scenario);
       const runId = randomUUID();

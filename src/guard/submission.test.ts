@@ -213,3 +213,35 @@ it('refuses escalation arriving while the public packet is revalidated', async (
     } finally { spy.mockRestore(); }
   } finally { s.store.close(); }
 });
+
+it('validates the approved structured refund against the fresh dispute', async () => {
+  const { checkSubmission, contentHash } = await import('./submission');
+  const s = await setup();
+  try {
+    const note = 'We offer $6.00 with a $2.00 refund.';
+    const version = { ...s.version, caseFile: { ...s.version.caseFile, evidence_draft: { ...s.version.caseFile.evidence_draft, seller_note: note } } };
+    const content = { versionId: version.id, stage: s.dispute.dispute_life_cycle_stage!, action: 'make-offer' as const, note, offer: { currency_code: 'USD', value: '6.00' }, offerType: 'REFUND_WITH_RETURN' as const, refund: { currency_code: 'USD', value: '2.00' } };
+    const approval = { id: 'refund-approval', disputeId: s.dispute.dispute_id, versionId: version.id, contentHash: contentHash(content), createdAt: new Date().toISOString(), content };
+    expect(checkSubmission({ approval, version, content, fresh: s.dispute, attempts: [] })).toMatchObject({ accepted: true, reasons: [] });
+    const excessive = { ...content, refund: { currency_code: 'USD', value: '999.00' } };
+    const bad = checkSubmission({ approval: { ...approval, content: excessive, contentHash: contentHash(excessive) }, version, content: excessive, fresh: s.dispute, attempts: [] });
+    expect(bad.reasons).toContain('Refund no longer fits disputed amount');
+  } finally { s.store.close(); }
+});
+
+it('dispatches the approved offer type and refund amount without changing them', async () => {
+  const { contentHash } = await import('./submission');
+  const store = new CaseStore(':memory:');
+  try {
+    const dispute = syntheticDispute('low-value'); store.save(dispute); store.assignScenario(dispute.dispute_id, 'low-value');
+    const file = draft('low-value'); file.evidence_draft.seller_note = 'We offer a $6.00 partial refund.';
+    const { version } = await investigate(store, scripted('low-value', file), dispute.dispute_id);
+    const paypal = { getDispute: vi.fn(async () => dispute), provideEvidence: vi.fn(), makeOffer: vi.fn(async () => ({})), acceptClaim: vi.fn() };
+    const service = new CaseService(store, paypal);
+    const approval = await service.approve(dispute.dispute_id, version!.id, store.snapshotFingerprint(dispute.dispute_id));
+    const content = { ...approval.content, offerType: 'REFUND_WITH_RETURN' as const, refund: { currency_code: 'USD', value: '6.00' } };
+    store.addApproval({ ...approval, id: 'with-refund', content, contentHash: contentHash(content) });
+    expect((await service.submit(dispute.dispute_id, 'with-refund')).status).toBe('submitted');
+    expect(paypal.makeOffer).toHaveBeenCalledWith(dispute.dispute_id, { note: file.evidence_draft.seller_note, offer_type: 'REFUND_WITH_RETURN', offer_amount: { currency_code: 'USD', value: '6.00' }, refund_amount: { currency_code: 'USD', value: '6.00' } });
+  } finally { store.close(); }
+});

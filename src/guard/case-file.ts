@@ -1,7 +1,7 @@
 import { trustedFacts, type TrustedFacts } from '../agent/facts';
 import type { SellerRecord } from '../records';
 import type { Dispute } from '../paypal/schemas';
-import type { CaseFile, GuardResult, ReadSource } from '../agent/schema';
+import type { CaseFile, GuardResult, ReadSource, SubmissionContent } from '../agent/schema';
 import { moneyFacts, units } from '../agent/money';
 import { privateTextFindings } from '../api/privacy';
 
@@ -22,7 +22,7 @@ function sameFigure(a: string, b: string): boolean {
   try { return signed(a) === signed(b); } catch { return false; }
 }
 /** Outbound notes are public; source support alone cannot authorize internal economics. */
-export function checkOutboundNote(note: string, sources: ReadSource[], disputed: { currency_code: string; value: string } | undefined, offer?: { currency_code: string; value: string }): string[] {
+export function checkOutboundNote(note: string, sources: ReadSource[], disputed: { currency_code: string; value: string } | undefined, settlement?: Pick<SubmissionContent, 'action' | 'offer' | 'offerType' | 'refund'>): string[] {
   const reasons: string[] = [];
   const fail = (code: string, detail: string) => reasons.push(`${code}: ${detail}. Save a new version with an edited seller note and approve again.`);
   const normalized = note.normalize('NFKC');
@@ -35,21 +35,36 @@ export function checkOutboundNote(note: string, sources: ReadSource[], disputed:
   });
   if (ids.some(id => id && normalized.toLowerCase().includes(id.toLowerCase()))) fail('OUTBOUND_NOTE_INTERNAL_ID', 'Internal source identifiers are not allowed');
   // A deliberate settlement offer is public transaction content, not internal economics.
-  const allowed = [disputed, offer].filter(value => value !== undefined);
+  const offer = settlement?.action === 'make-offer' ? settlement.offer : undefined;
+  const refund = offer && settlement?.offerType && ['REFUND', 'REFUND_WITH_RETURN', 'REFUND_WITH_REPLACEMENT'].includes(settlement.offerType) ? settlement.refund : undefined;
+  const allowed = [disputed, offer, refund].filter(value => value !== undefined);
   const mentions = moneyMentions(normalized);
+  const decimals = [...normalized.matchAll(/(?<![\w.])[+\-−]?\d[\d,]*\.\d+(?!\w|\.\d)/g)];
+  const unlabelled = decimals.filter(m => !mentions.some(mention => m.index! >= mention.start && m.index! < mention.end));
+  const proposed = [...mentions, ...unlabelled.map(m => ({ code: offer?.currency_code, value: m[0].replaceAll(',', '').replace('−', '-'), start: m.index!, end: m.index! + m[0].length }))];
+  if (offer && proposed.some(m => {
+    const before = normalized.slice(0, m.start);
+    const after = normalized.slice(m.end);
+    const isRefund = /\brefund\s*(?:of|for|is|:)?\s*$/i.test(before) || /^\s*(?:partial\s+)?refund\b/i.test(after);
+    const isOffer = /\b(?:offer(?:ing|ed)?|propos(?:e|ing|ed)|settle(?:ment)?)(?:\s+(?:a|an|of|for|is|at|partial|refund|amount|:))*\s*$/i.test(before) || /^\s*(?:settlement\s+)?offer\b/i.test(after);
+    const expected = isRefund ? refund ?? offer : isOffer ? offer : undefined;
+    return expected && (m.code !== expected.currency_code || !sameFigure(expected.value, m.value));
+  })) fail('OUTBOUND_NOTE_OFFER_AMOUNT_MISMATCH', 'The amount proposed in the note differs from the structured offer or refund');
   if (mentions.some(m => !allowed.some(a => a.currency_code === m.code && sameFigure(a.value, m.value)))) fail('OUTBOUND_NOTE_MONEY', 'Only the disputed amount or the structured settlement offer may be included');
   // Also catch bare decimal figures so omitting a currency symbol cannot leak costs.
-  const decimals = [...normalized.matchAll(/(?<![\w.])[+\-−]?\d[\d,]*\.\d+(?!\w|\.\d)/g)];
   if (decimals.some(m => !mentions.some(mention => m.index! >= mention.start && m.index! < mention.end) && !allowed.some(a => sameFigure(a.value, m[0].replaceAll(',', '').replace('−', '-'))))) fail('OUTBOUND_NOTE_MONEY', 'Unlabelled financial figures are not allowed');
   if (repeatsInstructions(normalized, sources) || /\b(?:ignore|disregard|override|reveal)\b.{0,80}\b(?:instructions?|prompt|system)\b/i.test(normalized)) fail('OUTBOUND_NOTE_INSTRUCTIONS', 'Untrusted instructions are not allowed');
   if (privateTextFindings(normalized).length) fail('OUTBOUND_NOTE_PRIVATE_TEXT', 'Private text is not allowed');
   const money = moneyFacts({ dispute_amount: disputed } as Dispute, sources.map(s => s.data).filter((d): d is SellerRecord => !!d && typeof d === 'object' && 'type' in d && 'content' in d));
   const internalFigures = [money.item_cost, money.shipping_cost, money.total_recorded_costs, money.net_if_won, money.net_if_lost];
-  const withoutDates = normalized.replace(/\b\d{4}-\d{2}-\d{2}(?:T[\d:.]+Z)?\b/g, '');
+  // Calendar days can equal internal costs. Preserve offsets into the original money spans.
+  const withoutDates = normalized
+    .replace(/\b\d{4}-\d{2}-\d{2}(?:T[\d:.]+Z)?\b/g, date => ' '.repeat(date.length))
+    .replace(/\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+(?:0?[1-9]|[12]\d|3[01]),\s+\d{4}\b/gi, date => ' '.repeat(date.length));
   const integers = [...withoutDates.matchAll(/(?<![\w.])[+\-−]?\d[\d,]*(?!\w|\.\d|,\d)/g)];
   if (integers.some(m => {
     const value = m[0].replaceAll(',', '').replace('−', '-');
-    return internalFigures.some(figure => figure !== null && sameFigure(figure, value)) && !allowed.some(a => sameFigure(a.value, value));
+    return !mentions.some(mention => m.index! >= mention.start && m.index! < mention.end) && internalFigures.some(figure => figure !== null && sameFigure(figure, value)) && !allowed.some(a => sameFigure(a.value, value));
   })) fail('OUTBOUND_NOTE_MONEY', 'Internal financial figures are not allowed');
   return [...new Set(reasons)];
 }
@@ -67,7 +82,7 @@ function sourceHasMoney(data: unknown, code: string, value: string): boolean {
   return Object.values(obj).some(v => sourceHasMoney(v, code, value));
 }
 export function checkCaseFile(file: CaseFile, sources: ReadSource[], forbidden: string[] = [], facts: TrustedFacts = inferredFacts(sources)): GuardResult {
-  const map = new Map(sources.map(s => [s.id, s.data])); const reasons: string[] = checkOutboundNote(file.evidence_draft.seller_note, sources, facts.money.disputed_amount !== null && facts.money.currency_code ? { currency_code: facts.money.currency_code, value: facts.money.disputed_amount } : undefined, file.recommendation.offer_amount);
+  const map = new Map(sources.map(s => [s.id, s.data])); const reasons: string[] = checkOutboundNote(file.evidence_draft.seller_note, sources, facts.money.disputed_amount !== null && facts.money.currency_code ? { currency_code: facts.money.currency_code, value: facts.money.disputed_amount } : undefined, file.recommendation.action === 'offer' ? { action: 'make-offer', offer: file.recommendation.offer_amount } : undefined);
   const prose = [file.summary, ...file.claims.map(c => c.text), ...file.timeline.map(t => t.event), file.recommendation.reasoning, file.recommendation.confidence.reason, file.evidence_draft.seller_note];
   for (const text of prose) reasons.push(...factualContradictions(text, facts));
   if (repeatsInstructions(JSON.stringify(file), sources, forbidden.find(v => v.startsWith('You assist a seller')))) reasons.push('Case file repeats or obeys untrusted instructions or prompt text');

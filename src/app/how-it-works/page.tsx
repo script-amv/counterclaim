@@ -71,8 +71,11 @@ export default function HowItWorks() {
           <p>
             <strong>SANDBOX / Demo seller data.</strong> Orders, shipments,
             costs and messages are synthetic. Offline replay case files are
-            recorded model outputs. A fixture may be revalidated offline by the
-            current guard.
+            unedited model outputs captured on November 6, 2026 through
+            OpenRouter, using the @preset/deepseek-mistral-vibe preset. The
+            provider reported Mistral and zero cost; the underlying model was
+            not reported. All four captures passed the guard and are checked
+            again when imported offline.
           </p>
           <p>
             Read-only replays never call a provider. The recorded
