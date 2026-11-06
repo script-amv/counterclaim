@@ -9,7 +9,7 @@ import { PayPalError } from '../paypal/client';
 async function setup() {
   const store = new CaseStore(':memory:'); const dispute = syntheticDispute('strong-delivery'); store.save(dispute); store.assignScenario(dispute.dispute_id, 'strong-delivery');
   const { version } = await investigate(store, scripted('strong-delivery'), dispute.dispute_id);
-  const paypal = { getDispute: vi.fn(async () => dispute), provideEvidence: vi.fn(async () => ({})), makeOffer: vi.fn(async () => ({})), acceptClaim: vi.fn(async () => ({})) };
+  const paypal = { getDispute: vi.fn(async () => dispute), provideEvidence: vi.fn<ConstructorParameters<typeof CaseService>[1]['provideEvidence']>(async () => ({})), makeOffer: vi.fn(async () => ({})), acceptClaim: vi.fn(async () => ({})) };
   const service = new CaseService(store, paypal);
   return { store, dispute, version: version!, paypal, service };
 }
@@ -127,5 +127,89 @@ it.each([422, 408, 503])('persists safe PayPal diagnostics for HTTP %s and retur
     expect(result.paypalError).toMatchObject({ status, debug_id: 'debug123', details: [{ issue: 'MISSING_TRACKING_INFO' }] });
     expect(s.store.attempts(s.dispute.dispute_id)[0]?.paypalError).toEqual(result.paypalError);
     expect(detailView(s.store, s.dispute.dispute_id).attempts[0]?.paypalError).toEqual(result.paypalError);
+  } finally { s.store.close(); }
+});
+
+it('blocks a legacy approved note leaking economics, then permits an operator correction', async () => {
+  const s = await setup();
+  try {
+    const { contentHash } = await import('./submission');
+    const a = await s.service.approve(s.dispute.dispute_id, s.version.id, s.store.snapshotFingerprint(s.dispute.dispute_id));
+    a.content.note = 'Recorded item and shipping costs were $4.42.';
+    a.content.evidence!.input.evidences[0]!.notes = a.content.note;
+    a.contentHash = contentHash(a.content); s.store.addApproval({ ...a, id: 'legacy-unsafe' });
+    await expect(s.service.submit(s.dispute.dispute_id, 'legacy-unsafe')).rejects.toThrow('OUTBOUND_NOTE_');
+    expect(s.paypal.provideEvidence).not.toHaveBeenCalled();
+    const edited = draft('strong-delivery');
+    edited.evidence_draft.seller_note = 'Thank you for contacting us. The carrier recorded a signed delivery to the order address.';
+    const v = s.service.edit(s.dispute.dispute_id, edited, s.version.id);
+    const fixed = await s.service.approve(s.dispute.dispute_id, v.id, s.store.snapshotFingerprint(s.dispute.dispute_id));
+    await s.service.submit(s.dispute.dispute_id, fixed.id);
+    expect(s.paypal.provideEvidence.mock.calls[0]?.[1]).toMatchObject({ evidences: [{ notes: edited.evidence_draft.seller_note }] });
+  } finally { s.store.close(); }
+});
+it('refuses an INQUIRY review and approval after escalation resets the turn at CLAIM', async () => {
+  const s = await setup();
+  try {
+    const { CaseSync } = await import('../cases/sync');
+    const { detailView } = await import('../api/views');
+    s.store.save({ ...s.dispute, status: 'WAITING_FOR_BUYER_RESPONSE' });
+    const reviewed = detailView(s.store, s.dispute.dispute_id);
+    expect(reviewed.case.whoseTurn).toBe('buyer');
+    const a = await s.service.approve(s.dispute.dispute_id, s.version.id, reviewed.snapshotFingerprint);
+    const claim = { ...s.dispute, dispute_life_cycle_stage: 'CLAIM', status: 'WAITING_FOR_SELLER_RESPONSE', seller_response_due_date: '2026-11-15T10:00:00Z' };
+    const sync = new CaseSync(s.store, { getDispute: async () => claim, listDisputes: async () => [claim] });
+    expect((await sync.syncDispute(claim.dispute_id)).changed).toBe(true);
+    const current = detailView(s.store, claim.dispute_id);
+    expect(current.case).toMatchObject({ stage: 'CLAIM', whoseTurn: 'seller', deadline: '2026-11-15T10:00:00Z' });
+    expect(current.snapshotFingerprint).not.toBe(reviewed.snapshotFingerprint);
+    await expect(s.service.approve(claim.dispute_id, s.version.id, reviewed.snapshotFingerprint)).rejects.toThrow('Case state changed');
+    s.paypal.getDispute.mockResolvedValue(claim);
+    await expect(s.service.submit(claim.dispute_id, a.id)).rejects.toThrow('Dispute stage changed');
+    expect(s.paypal.provideEvidence).not.toHaveBeenCalled();
+    expect(s.store.attempts(claim.dispute_id)).toEqual([]);
+  } finally { s.store.close(); }
+});
+
+it('refuses a legacy packet that differs from the current public-only evidence packet', async () => {
+  const s = await setup();
+  try {
+    const { contentHash } = await import('./submission');
+    const a = await s.service.approve(s.dispute.dispute_id, s.version.id, s.store.snapshotFingerprint(s.dispute.dispute_id));
+    a.content.evidence!.pdfBase64 = Buffer.concat([Buffer.from(a.content.evidence!.pdfBase64, 'base64'), Buffer.from('\n% internal costs $4.42')]).toString('base64');
+    a.contentHash = contentHash(a.content); s.store.addApproval({ ...a, id: 'legacy-packet' });
+    await expect(s.service.submit(s.dispute.dispute_id, 'legacy-packet')).rejects.toThrow('OUTBOUND_PACKET_STALE');
+    expect(s.paypal.provideEvidence).not.toHaveBeenCalled();
+  } finally { s.store.close(); }
+});
+
+it('checks nested evidence notes independently of the reviewed note', async () => {
+  const s = await setup();
+  try {
+    const { contentHash } = await import('./submission');
+    const a = await s.service.approve(s.dispute.dispute_id, s.version.id, s.store.snapshotFingerprint(s.dispute.dispute_id));
+    a.content.evidence!.input.evidences[0]!.notes = 'Recorded costs were $4.42.';
+    a.contentHash = contentHash(a.content); s.store.addApproval({ ...a, id: 'unsafe-nested-note' });
+    await expect(s.service.submit(s.dispute.dispute_id, 'unsafe-nested-note')).rejects.toThrow('OUTBOUND_NOTE_');
+    expect(s.paypal.provideEvidence).not.toHaveBeenCalled();
+  } finally { s.store.close(); }
+});
+
+it('refuses escalation arriving while the public packet is revalidated', async () => {
+  const s = await setup();
+  const evidence = await import('../evidence');
+  try {
+    const a = await s.service.approve(s.dispute.dispute_id, s.version.id, s.store.snapshotFingerprint(s.dispute.dispute_id));
+    const generate = evidence.generatePacket;
+    const spy = vi.spyOn(evidence, 'generatePacket').mockImplementation(async (...args) => {
+      const bytes = await generate(...args);
+      s.store.save({ ...s.dispute, dispute_life_cycle_stage: 'CLAIM' });
+      return bytes;
+    });
+    try {
+      await expect(s.service.submit(s.dispute.dispute_id, a.id)).rejects.toThrow('Case state changed');
+      expect(s.paypal.provideEvidence).not.toHaveBeenCalled();
+      expect(s.store.attempts(s.dispute.dispute_id)).toEqual([]);
+    } finally { spy.mockRestore(); }
   } finally { s.store.close(); }
 });

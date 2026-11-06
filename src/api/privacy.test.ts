@@ -13,3 +13,17 @@ it('permits product labels while still protecting buyer and seller identities', 
     expect(containsPrivateText(text, forbidden)).toBe(true);
   }
 });
+
+it('does not treat carrier names as identities, while retaining actual name protection', () => {
+  const forbidden = privateValues({ evidences: [{ evidence_info: { tracking_info: [{
+    carrier_name: 'DEMO CARRIER', carrier_name_other: 'Alternate Parcel Service',
+    recipient_name: 'Private Recipient',
+  }] } }], buyer: { name: 'Private Buyer' }, seller: { name: 'Private Seller' } });
+  expect(containsPrivateText('DEMO CARRIER and Alternate Parcel Service', forbidden)).toBe(false);
+  for (const identity of ['Private Recipient', 'Private Buyer', 'Private Seller']) {
+    expect(containsPrivateText(identity, forbidden)).toBe(true);
+  }
+  // Carrier metadata must not exempt the same value supplied as an actual identity.
+  expect(containsPrivateText('DEMO CARRIER', privateValues({ carrier_name: 'DEMO CARRIER', buyer: { name: 'DEMO CARRIER' } }))).toBe(true);
+  expect(containsPrivateText('contact@example.invalid', forbidden)).toBe(true);
+});

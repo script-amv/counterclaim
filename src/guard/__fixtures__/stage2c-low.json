@@ -149,7 +149,7 @@
       }
     },
     "evidence_draft": {
-      "seller_note": "Buyer reports the parcel has not arrived. Our records show order DEMO-ORDER-low-value for USD 12.00 shipped under tracking DEMO-TRACKING-low-value with a matching delivery address, but the shipment is unsigned and the only carrier event is an acceptance scan that does not confirm delivery. The buyer has offered to settle for a USD 6.00 partial refund, which we are prepared to accept to resolve this inquiry. Attached records are sandbox demo data from the seller store.",
+      "seller_note": "The carrier accepted the parcel, but delivery and signature confirmation are unavailable. We can offer a partial refund of $6.00 to resolve this.",
       "attach_records": [
         "low-value-order-01",
         "low-value-shipment-01",

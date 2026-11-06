@@ -185,7 +185,7 @@
       }
     },
     "evidence_draft": {
-      "seller_note": "Sandbox demo case DEMO-weak-delivery (item-not-received, USD 120.00, order DEMO-ORDER-weak-delivery, Demo desk lamp). Our records do not establish delivery: shipment DEMO-TRACKING-weak-delivery with DEMO CARRIER is recorded as STALLED, signed=false, and address_matches=false, with a note that the shipment address reference differs from the order. The tracking event of 2026-11-03 confirms tracking stalled and delivery unconfirmed, and the buyer messaged on 2026-11-04 that the parcel has not arrived. Recorded costs are item 45.00 USD and shipping 8.00 USD. Because delivery, signature and address match are all unestablished, we are not contesting the claim and are resolving it by refunding the disputed amount. All records referenced are synthetic sandbox demo data; no verified PayPal Orders v2 record is available for this case.",
+      "seller_note": "Tracking has not moved since the carrier accepted the parcel, and delivery is not confirmed. The shipment address does not match the order address and no signature was recorded. We will refund your payment.",
       "attach_records": [
         "weak-delivery-order-01",
         "weak-delivery-shipment-01",

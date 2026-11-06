@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { CaseStore } from '../cases/storage';
 import { investigate, READ_TOOLS } from './loop';
+import { runView } from '../api/views';
 import { scenarioIds, syntheticDispute, type ScenarioId } from '../records';
 import { draft, scripted, ScriptedProvider } from './test-fixtures';
 
@@ -87,5 +88,57 @@ it.each(scenarioIds)('investigates and rechecks a live %s case using derived evi
     const noNetwork = async () => { throw new Error('No network allowed'); };
     const service = new CaseService(store, { getDispute: noNetwork, provideEvidence: noNetwork, makeOffer: noNetwork, acceptClaim: noNetwork });
     expect(service.edit(dispute.dispute_id, version!.caseFile, version!.id).guard).toMatchObject({ accepted: true, reasons: [] });
+  } finally { store.close(); }
+});
+
+it('accepts carrier prose at CHARGEBACK without exposing buyer messages or evidence notes', async () => {
+  const { store, dispute } = setup('strong-delivery');
+  try {
+    store.save({ ...dispute, dispute_life_cycle_stage: 'CHARGEBACK',
+      disputed_transactions: [{ buyer: { name: 'Private Buyer', email: 'buyer@example.invalid', payer_id: 'PRIVATE-PAYER' } }],
+      messages: [{ posted_by: 'BUYER', content: 'Escalation from Private Buyer at buyer@example.invalid' }],
+      evidences: [{ evidence_type: 'OTHER', source: 'BUYER', notes: 'PRIVATE-ADDRESS and PRIVATE-PAYER', evidence_info: { tracking_info: [{ carrier_name_other: 'DEMO CARRIER' }] } }],
+    });
+    const file = draft('strong-delivery');
+    file.summary = 'DEMO CARRIER recorded the shipment.';
+    file.timeline[0]!.event = 'DEMO CARRIER recorded delivery.';
+    file.evidence_draft.seller_note = 'DEMO CARRIER recorded delivery.';
+    const model = scripted('strong-delivery', file);
+    const { run, version } = await investigate(store, model, dispute.dispute_id);
+    expect(version?.guard).toMatchObject({ accepted: true, reasons: [] });
+    expect(run.status).toBe('completed');
+    const context = JSON.stringify(model.messages);
+    for (const privateText of ['Private Buyer', 'buyer@example.invalid', 'PRIVATE-PAYER', 'PRIVATE-ADDRESS', 'Escalation from']) expect(context).not.toContain(privateText);
+    const toolMessage = model.messages[1]!.find(m => m.role === 'tool' && m.tool_call_id === 'd')!;
+    const safe = JSON.parse(toolMessage.content!).data.dispute;
+    expect(safe.dispute_life_cycle_stage).toBe('CHARGEBACK');
+    for (const field of ['disputed_transactions', 'messages', 'evidences']) expect(safe).not.toHaveProperty(field);
+  } finally { store.close(); }
+});
+
+it('persists rejection field paths and rule names without private values', async () => {
+  const { store, dispute } = setup('strong-delivery');
+  try {
+    store.save({ ...dispute, disputed_transactions: [{ buyer: { name: 'Private Buyer' } }] });
+    const file = draft('strong-delivery');
+    file.summary = 'Private Buyer reported a problem.';
+    file.timeline[0]!.event = 'Contact at contact@example.invalid.';
+    file.evidence_draft.seller_note = 'Private Buyer reported a problem.';
+    const { run, version } = await investigate(store, scripted('strong-delivery', file), dispute.dispute_id);
+    expect(run.status).toBe('rejected');
+    expect(run.failureCode).toBe('invalid_output');
+    const stored = store.runs(dispute.dispute_id)[0]!;
+    expect(stored).toHaveProperty('privacyFindings', [
+      { path: 'summary', rule: 'PRIVATE_SOURCE_VALUE' },
+      { path: 'timeline[0].event', rule: 'EMAIL' },
+      { path: 'evidence_draft.seller_note', rule: 'PRIVATE_SOURCE_VALUE' },
+    ]);
+    expect(runView(stored)).toHaveProperty('privacyFindings', Reflect.get(stored, 'privacyFindings'));
+    const reasons = version!.guard.reasons.join(' ');
+    for (const field of ['summary', 'timeline[0].event', 'evidence_draft.seller_note', 'PRIVATE_SOURCE_VALUE', 'EMAIL']) expect(reasons).toContain(field);
+    for (const privateText of ['Private Buyer', 'contact@example.invalid']) {
+      expect(reasons).not.toContain(privateText);
+      expect(JSON.stringify(stored)).not.toContain(privateText);
+    }
   } finally { store.close(); }
 });

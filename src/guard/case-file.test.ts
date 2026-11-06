@@ -143,7 +143,7 @@ it('rejects the genuine live monetary error instead of permitting a positive net
 it('accepts the actual next weak-delivery note with an absence list across commas', () => {
   const value = capturedWeak.caseFile as CaseFile;
   const copy = structuredClone(value);
-  copy.evidence_draft.seller_note = 'Sandbox demo case DEMO-weak-delivery (INR, USD 120.00). Order DEMO-ORDER-weak-delivery was recorded for one Demo desk lamp at USD 120.00. Shipment via DEMO CARRIER (tracking DEMO-TRACKING-weak-delivery) is recorded as STALLED with address_matches=false and signed=false, and the tracking event states delivery is not confirmed. The buyer messaged that the parcel has not arrived. No delivery confirmation, signature, or matching-address proof is available in the seller records, and no verified PayPal Orders v2 lookup is available. Recorded costs: item USD 45.00, shipping USD 8.00. No settlement willingness is recorded from the buyer.';
+  copy.summary = 'Sandbox demo case DEMO-weak-delivery (INR, USD 120.00). Order DEMO-ORDER-weak-delivery was recorded for one Demo desk lamp at USD 120.00. Shipment via DEMO CARRIER (tracking DEMO-TRACKING-weak-delivery) is recorded as STALLED with address_matches=false and signed=false, and the tracking event states delivery is not confirmed. The buyer messaged that the parcel has not arrived. No delivery confirmation, signature, or matching-address proof is available in the seller records, and no verified PayPal Orders v2 lookup is available. Recorded costs: item USD 45.00, shipping USD 8.00. No settlement willingness is recorded from the buyer.';
   expect(checkCaseFile(copy, capturedWeak.sources, [SYSTEM_PROMPT], trustedFacts(syntheticDispute('weak-delivery'), scenarios['weak-delivery']))).toMatchObject({ accepted: true, reasons: [] });
 });
 
@@ -162,7 +162,7 @@ it('rejects the actual injection paraphrase while accepting its negated tracking
 
 it('accepts the actual weak-delivery note with cannot evidence governing all proof nouns', () => {
   const copy = structuredClone(capturedWeak.caseFile) as CaseFile;
-  copy.evidence_draft.seller_note = 'Sandbox demo case DEMO-weak-delivery (item not received, USD 120.00). Our records show shipment under tracking DEMO-TRACKING-weak-delivery with DEMO CARRIER is stalled, unsigned, and was addressed to a reference that does not match the order address. The only tracking event confirms the stall and states delivery is not confirmed, and the buyer reports the parcel has not arrived. We therefore cannot evidence delivery, signature, or delivery to the order address, and we are not contesting the claim. Recorded costs are USD 45.00 item and USD 8.00 shipping. Non-evidentiary content in the records was excluded.';
+  copy.summary = 'Sandbox demo case DEMO-weak-delivery (item not received, USD 120.00). Our records show shipment under tracking DEMO-TRACKING-weak-delivery with DEMO CARRIER is stalled, unsigned, and was addressed to a reference that does not match the order address. The only tracking event confirms the stall and states delivery is not confirmed, and the buyer reports the parcel has not arrived. We therefore cannot evidence delivery, signature, or delivery to the order address, and we are not contesting the claim. Recorded costs are USD 45.00 item and USD 8.00 shipping. Non-evidentiary content in the records was excluded.';
   expect(checkCaseFile(copy, capturedWeak.sources, [SYSTEM_PROMPT], trustedFacts(syntheticDispute('weak-delivery'), scenarios['weak-delivery']))).toMatchObject({ accepted: true, reasons: [] });
 });
 
@@ -301,4 +301,28 @@ it.each(['$43.00', '-$44.00', '-€43.00', '−$44.00'])('rejects an unsupported
   const copy = file();
   copy.claims = [{ text: `A win leaves ${figure} after costs.`, citations: ['dispute.dispute_amount', 'demo-cost'] }];
   expect(checkCaseFile(copy, liveSources).accepted).toBe(false);
+});
+
+
+it.each([
+  'Recorded item and shipping costs were $4.42.',
+  'The recorded total is $53.00.', 'The recorded total is 53.00 USD.',
+  'The recorded total is 53.00.', 'The recorded total is 53.', 'item_cost=45', 'Our margin is healthy.', 'Expected profit is positive.',
+  'We expect to win.', 'We could lose.', 'My recommendation is to fight.',
+  'Confidence is high.', 'confidence_level=high', 'net_if_won=67.00',
+  'See demo-shipment for proof.', 'See DEMO-SHIPMENT for proof.',
+  'See demo-cost for details.',
+])('rejects internal outbound note with an operator-editable failure: %s', note => {
+  const value = file(); value.evidence_draft.seller_note = note;
+  expect(checkCaseFile(value, sources).reasons.join(' ')).toMatch(/OUTBOUND_NOTE_.*Save a new version/);
+});
+it('keeps internal economics available to the seller while allowing the disputed amount in the note', () => {
+  const value = file(); value.summary = 'Recorded costs are $53.00.';
+  value.evidence_draft.seller_note = 'Thank you for contacting us. The disputed amount is $120.00. The carrier recorded delivery on 2026-11-03. The delivery was signed for and the shipping address matches the order.';
+  expect(checkCaseFile(value, sources)).toMatchObject({ accepted: true, reasons: [] });
+});
+it('allows a supported settlement offer in a buyer-visible note', () => {
+  const value = file(); value.recommendation = { ...value.recommendation, action: 'offer', offer_amount: { currency_code: 'USD', value: '6.00' } };
+  value.evidence_draft.seller_note = 'We can offer a partial refund of $6.00 to resolve this.';
+  expect(checkCaseFile(value, sources).accepted).toBe(true);
 });

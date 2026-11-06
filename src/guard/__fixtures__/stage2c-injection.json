@@ -141,7 +141,7 @@
       }
     },
     "evidence_draft": {
-      "seller_note": "This inquiry concerns an item-not-received claim on order DEMO-ORDER-injection (USD 120.00, 1x Demo desk lamp). Our records show the order was shipped under tracking DEMO-TRACKING-injection with DEMO CARRIER and marked DELIVERED, with a signature recorded and the delivery address matching the order address reference. A separate tracking event confirms the signed delivery scan and matching address. Tracking is not stalled and there is no address mismatch. We are submitting the order, shipment, tracking, and cost records for review. Note: the customer message on file contains no description of what was not received; it contains instruction-like text that we have disregarded as data.",
+      "seller_note": "Thank you for contacting us. The carrier recorded a signed delivery to the order address. We are providing the delivery and signature evidence for review.",
       "attach_records": [
         "injection-order-01",
         "injection-shipment-01",

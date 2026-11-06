@@ -1,3 +1,4 @@
+import { buildOutboundPacket } from '../evidence/packet';
 import { claimHighlights, instructionNotice } from '../ui/evidence';
 import { trustedFacts } from '../agent/facts';
 import { recordsForScenario } from '../records';
@@ -10,13 +11,19 @@ import type { CaseDetailResponse, CaseFileVersionResponse, CaseQueueRow, RunResp
 import { ApiError } from './service';
 
 export function versionView(version: CaseFileVersion, forbidden: string[] = []): CaseFileVersionResponse {
-  return { id: version.id, runId: version.runId, createdAt: version.createdAt,
+  const visible = !containsPrivateText(version.caseFile, forbidden) && !containsPrivateText(version.sources, forbidden);
+  let outboundPacket: CaseFileVersionResponse['outboundPacket'];
+  // Rejected files with unread citations still need to remain reviewable.
+  if (visible) {
+    try { outboundPacket = buildOutboundPacket(version.caseFile, version.sources); } catch { /* Guard reports missing sources. */ }
+  }
+  return { outboundPacket, id: version.id, runId: version.runId, createdAt: version.createdAt,
     caseFile: containsPrivateText(version.caseFile, forbidden) ? null : version.caseFile, guard: version.guard,
     sources: version.sources.filter(source => !containsPrivateText(source.data, forbidden)) };
 }
 export function runView(r: AgentRun): RunResponse {
   return { id: r.id, model: r.model, status: r.status, startedAt: r.startedAt, endedAt: r.endedAt,
-    toolCalls: r.toolCalls, tokens: r.tokens, tokensEstimated: r.tokensEstimated, cost: r.cost, failure: r.failure, provider: r.provider, turns: r.turns, failureCode: r.failureCode };
+    privacyFindings: r.privacyFindings, toolCalls: r.toolCalls, tokens: r.tokens, tokensEstimated: r.tokensEstimated, cost: r.cost, failure: r.failure, provider: r.provider, turns: r.turns, failureCode: r.failureCode };
 }
 export function approvalView(a: Approval): ApprovalResponse { return { stage: a.content.stage, id: a.id, versionId: a.versionId, contentHash: a.contentHash, createdAt: a.createdAt }; }
 export function queueRow(store: CaseStore, id: string): CaseQueueRow {

@@ -3,7 +3,8 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf
 import { caseFileSchema, type CaseFile, type ReadSource } from '../agent/schema';
 import type { EvidenceInput } from '../paypal/client';
 
-export const DEMO_LABEL = 'SANDBOX DEMO DATA';
+import { buildOutboundPacket, outboundTextReasons, printable } from './packet';
+export { DEMO_LABEL } from './packet';
 export const MAX_EVIDENCE_BYTES = 10_000_000;
 const knownCarriers = new Set(['UPS', 'USPS', 'FEDEX', 'DHL', 'ROYAL_MAIL', 'PARCELFORCE', 'AIRBORNE_EXPRESS', 'AIRSURE', 'SWIFTAIR', 'OTHER']);
 const filenamePattern = /^[A-Za-z0-9-_,\s]+[.][A-Za-z]+$/;
@@ -48,10 +49,6 @@ export function evidenceInput(reason: string | undefined, file: CaseFile, source
   }] };
 }
 
-// Standard PDF fonts support WinAnsi, not arbitrary Unicode. Make substitutions explicit and deterministic.
-function printable(text: string) {
-  return text.normalize('NFKD').replace(/[\u2010-\u2015]/g, '-').replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/[^\x20-\x7E\n]/g, '?');
-}
 /** Check the rendering normalization too: accents and unsupported glyphs change in PDF fonts. */
 export function packetContainsPrivateText(file: CaseFile, sources: ReadSource[], forbidden: string[]): boolean {
   const normalize = (text: string) => printable(text.normalize('NFKD').replace(/\p{M}/gu, '')).replaceAll('?', '');
@@ -78,24 +75,26 @@ function wrapped(text: string, font: PDFFont, size: number, width: number): stri
 /** Caller must supply the exact approved CaseFile and the read sources saved with that version. */
 export async function generatePacket(file: CaseFile, sources: ReadSource[]): Promise<Uint8Array> {
   caseFileSchema.parse(file);
-  const selected = selectedSources(file, sources);
+  const packet = buildOutboundPacket(file, sources);
   const document = await PDFDocument.create();
   // Fixed metadata means approval hashes can bind reproducible document bytes.
   const fixedDate = new Date('2026-11-05T00:00:00.000Z');
   document.setCreationDate(fixedDate); document.setModificationDate(fixedDate);
-  document.setTitle('Counterclaim sandbox demo evidence packet'); document.setAuthor('Counterclaim sandbox demo');
-  document.setProducer('Counterclaim / pdf-lib'); document.setCreator('Counterclaim sandbox demo');
+  const checked = (text: string) => outboundTextReasons(text, sources).length ? '' : text;
+  document.setTitle(checked('Counterclaim sandbox demo evidence packet')); document.setAuthor(checked('Counterclaim sandbox demo'));
+  document.setProducer(checked('Counterclaim / pdf-lib')); document.setCreator(checked('Counterclaim sandbox demo'));
   const regular = await document.embedFont(StandardFonts.Helvetica);
   const bold = await document.embedFont(StandardFonts.HelveticaBold);
   let page: PDFPage; let y = 0; let pageNumber = 0;
   const addPage = () => {
     page = document.addPage([612, 792]); pageNumber++; y = 720;
-    page.drawText(DEMO_LABEL, { x: 48, y: 758, size: 11, font: bold, color: rgb(0.55, 0.12, 0.12) });
+    page.drawText(checked(packet.header), { x: 48, y: 758, size: 11, font: bold, color: rgb(0.55, 0.12, 0.12) });
     page.drawLine({ start: { x: 48, y: 746 }, end: { x: 564, y: 746 }, thickness: 0.5, color: rgb(0.75, 0.75, 0.75) });
-    page.drawText(`Counterclaim | Sandbox demo | Page ${pageNumber}`, { x: 48, y: 30, size: 9, font: regular, color: rgb(0.4, 0.4, 0.4) });
+    page.drawText(checked(`Counterclaim | Sandbox demo | Page ${pageNumber}`), { x: 48, y: 30, size: 9, font: regular, color: rgb(0.4, 0.4, 0.4) });
   };
   addPage();
   const write = (text: string, heading = false) => {
+    if (outboundTextReasons(text, sources).length) return;
     const font = heading ? bold : regular; const size = heading ? 13 : 10;
     const lines = wrapped(text, font, size, 516);
     if (heading && y < 96) addPage();
@@ -106,14 +105,7 @@ export async function generatePacket(file: CaseFile, sources: ReadSource[]): Pro
     }
     y -= 8;
   };
-  write('Case summary', true); write(file.summary);
-  write('Timeline', true);
-  for (const item of file.timeline) write(`${item.date}: ${item.event}\nSources: ${item.citations.join(', ')}`);
-  write('Sourced claims', true);
-  for (const claim of file.claims) write(`${claim.text}\nSources: ${claim.citations.join(', ')}`);
-  write('Seller note', true); write(file.evidence_draft.seller_note);
-  write('Cited source records', true);
-  for (const source of selected) { write(source.id, true); write(JSON.stringify(source.data, null, 2)); }
+  for (const block of packet.blocks) write(block.text, block.heading);
   const bytes = await document.save({ useObjectStreams: true, addDefaultPage: false });
   if (!bytes.byteLength || bytes.byteLength >= MAX_EVIDENCE_BYTES) throw new Error('Evidence packet must be smaller than 10 MB');
   return bytes;

@@ -116,6 +116,14 @@ node scripts/run-ts.mjs scripts/diagnose-submit.ts '<dispute-id>' '<approval-id>
 
 Supply environment variables externally, including `DATABASE_PATH` for a nondefault database. The diagnostic never loads dotenv or spike files. Dry run prints only the redacted request shape, part sizes and note lengths. It reads the frozen approval without regenerating the packet or changing approved content.
 
+To save the exact frozen `evidence-file` bytes locally, add `--save-pdf <path>`:
+
+```sh
+node scripts/run-ts.mjs scripts/diagnose-submit.ts '<dispute-id>' '<approval-id>' --dry-run --save-pdf '/tmp/evidence.pdf'
+```
+
+This option requires `--dry-run`, never sends anything, and refuses to overwrite an existing file. The destination path and PDF contents are not printed. Restored evidence sections apply to new approvals; existing approvals retain their original frozen bytes.
+
 For an intentional live sandbox submission, supply sandbox credentials externally and omit `--dry-run`:
 
 ```sh

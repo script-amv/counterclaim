@@ -93,7 +93,7 @@
       }
     },
     "evidence_draft": {
-      "seller_note": "Tracking has not moved since the carrier accepted the parcel, and delivery is not confirmed. The shipment address does not match the order address and no signature was recorded. I am refunding the buyer.",
+      "seller_note": "Tracking has not moved since the carrier accepted the parcel, and delivery is not confirmed. The shipment address does not match the order address and no signature was recorded. We will refund your payment.",
       "attach_records": [
         "weak-delivery-order-01",
         "weak-delivery-shipment-01",

@@ -92,7 +92,7 @@
       }
     },
     "evidence_draft": {
-      "seller_note": "The buyer says the notebook has not arrived. We shipped it to the address on the order and the carrier accepted the parcel, but we have no delivery scan or signature. The buyer offered to settle for a $6.00 partial refund, and we are making that offer.",
+      "seller_note": "The carrier accepted the parcel, but delivery and signature confirmation are unavailable. We can offer a partial refund of $6.00 to resolve this.",
       "attach_records": [
         "low-value-order-01",
         "low-value-shipment-01",

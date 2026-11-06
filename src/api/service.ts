@@ -69,6 +69,7 @@ export class CaseService {
     const fresh = await this.paypal.getDispute(id);
     if (fresh.dispute_id !== id) throw new ApiError(502, 'Dispute identity mismatch');
     this.store.save(fresh);
+    const submissionSnapshot = this.store.snapshotFingerprint(id);
     const v = this.latest(id);
     const content = approval.content;
     const guard = checkSubmission({ approval, version: v, content, fresh, attempts: this.store.attempts(id) });
@@ -77,8 +78,13 @@ export class CaseService {
     let evidenceFile: File | undefined;
     if (content.action === 'provide-evidence') {
       if (!content.evidence) throw new ApiError(409, 'Approved packet is missing');
+      const publicPacket = await generatePacket(v.caseFile, v.sources);
+      const publicInput = evidenceInput(fresh.reason, v.caseFile, v.sources, content.evidence.filename);
+      if (Buffer.from(publicPacket).toString('base64') !== content.evidence.pdfBase64 || JSON.stringify(publicInput) !== JSON.stringify(content.evidence.input)) throw new ApiError(409, 'OUTBOUND_PACKET_STALE: Approve the current public evidence packet again.');
       evidenceFile = new File([Buffer.from(content.evidence.pdfBase64, 'base64')], content.evidence.filename, { type: 'application/pdf' }); validateEvidenceFile(evidenceFile);
     }
+    // Packet revalidation awaits; refuse any sync that changed the reviewed state meanwhile.
+    if (this.store.snapshotFingerprint(id) !== submissionSnapshot) throw new ApiError(409, 'Case state changed. Review the updated state and approve again.');
     const attempt: SubmissionAttempt = { id: randomUUID(), disputeId: id, versionId: v.id, approvalId, stage: content.stage, action: content.action, contentHash: approval.contentHash, status: 'submitting', startedAt: new Date().toISOString() };
     // Partial UNIQUE index is the durable concurrency gate, including after process restarts.
     try { this.store.reserveSubmission(attempt); } catch { throw new ApiError(409, 'Submission already recorded for this stage'); }
@@ -97,11 +103,13 @@ export class CaseService {
     try { const current = await this.paypal.getDispute(id); if (current.dispute_id === id) this.store.save(current); } catch { /* Keep last known snapshot and durable attempt. */ }
     return attempt;
   }
-  preview(id: string): Uint8Array {
+  async preview(id: string): Promise<Uint8Array> {
     const v = this.latest(id); const a = this.store.approvals(id).findLast(a => a.versionId === v.id);
     if (!a?.content.evidence || a.contentHash !== contentHash(a.content)) throw new ApiError(409, 'Approve this version to preview its packet');
     const forbidden = casePrivateValues(this.store, id);
     if (packetContainsPrivateText(v.caseFile, v.sources, forbidden) || containsPrivateText(a.content.evidence.input, forbidden) || !checkCaseFile(v.caseFile, v.sources, [...forbidden, SYSTEM_PROMPT], this.facts(id)).accepted) throw new ApiError(409, 'Packet requires privacy or evidence review');
+    const current = await generatePacket(v.caseFile, v.sources);
+    if (this.latest(id).id !== v.id || Buffer.from(current).toString('base64') !== a.content.evidence.pdfBase64) throw new ApiError(409, 'OUTBOUND_PACKET_STALE: Approve the current public evidence packet again.');
     return Buffer.from(a.content.evidence.pdfBase64, 'base64');
   }
 }

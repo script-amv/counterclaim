@@ -143,7 +143,7 @@
       }
     },
     "evidence_draft": {
-      "seller_note": "This is a sandbox demo case. The buyer filed an item-not-received inquiry for USD 120.00 on order DEMO-ORDER-strong-delivery (Demo desk lamp, qty 1). Our records show the order was shipped under tracking DEMO-TRACKING-strong-delivery with DEMO CARRIER and recorded as DELIVERED, with a signed delivery scan and a delivery address matching the order address reference (shipment record strong-delivery-shipment-01; tracking event strong-delivery-tracking_event-01). The buyer's message of 2026-11-04 states the parcel has not arrived, which conflicts with the recorded signed delivery scan. We are attaching the order, shipment, tracking event, cost and policy records for review. We acknowledge that these are synthetic demo records and that no verified PayPal Orders v2 record is available for this case.",
+      "seller_note": "Thank you for contacting us. The carrier recorded a signed delivery to the order address. We are providing the delivery and signature evidence for review.",
       "attach_records": [
         "strong-delivery-order-01",
         "strong-delivery-shipment-01",

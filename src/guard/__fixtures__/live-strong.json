@@ -74,7 +74,7 @@
       }
     },
     "evidence_draft": {
-      "seller_note": "The order was shipped and the carrier scan shows it delivered to the address on the order. The delivery was signed for and the shipping address matches the order. The buyer messaged that the parcel has not arrived, and I am providing the carrier delivery and signature records for review.",
+      "seller_note": "Thank you for contacting us. The carrier recorded a signed delivery to the order address. We are providing the delivery and signature evidence for review.",
       "attach_records": [
         "strong-delivery-order-01",
         "strong-delivery-shipment-01",

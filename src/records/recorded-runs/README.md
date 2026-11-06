@@ -1,6 +1,6 @@
 # Recorded model runs
 
-All four case files were freshly captured on **2026-11-05** for stage 3c. Model prose is copied verbatim, with computed gaps merged by the application. No model case file was hand-rewritten. All four pass the **current real guard**, including its prompt/injection checks.
+All four case files were freshly captured on **2026-11-05** for stage 3c. Computed gaps are merged by the application. On 2026-11-06, the outbound seller notes in `weak-delivery.json`, `low-value.json` and `injection.json` were edited for the buyer-visible note guard: third-person narration and internal costs were removed. These three notes are operator-corrected replay text, not verbatim model captures. The strong-delivery replay is unchanged. Internal summaries, recommendations, sources and accounting retain their captured content. All four pass the **current real guard**, including its prompt/injection checks.
 
 | Scenario | Original capture directory | Current recommendation |
 | --- | --- | --- |
@@ -11,7 +11,7 @@ All four case files were freshly captured on **2026-11-05** for stage 3c. Model 
 
 Each JSON retains its capture path, configured model identifier (`@preset/deepseek-mistral-vibe`), provider (`Mistral`), start/end time, structured tool/source trace and token/cost accounting. All captures used Mistral at zero cost. The upstream model behind the preset was not reported; no more specific model name is claimed.
 
-Weak delivery was initially rejected because the guard misread “Delivery, signature and a matching address are all unsupported” as affirmative proof. The narrowly extended absence recognition accepts that same output, without changing its text. This fixture preserves the complete original `capturedRun` and `capturedGuard`, including their rejection, alongside the current real `guard` result and a validation explanation. Its replay `run.status` is `completed` and its obsolete `failureCode` is removed to reflect successful offline revalidation; all other run fields are unchanged. A subsequent live weak-delivery retry exhausted ten turns without returning a case file and is not used as a fixture.
+Weak delivery was initially rejected because the guard misread “Delivery, signature and a matching address are all unsupported” as affirmative proof. The narrowly extended absence recognition accepts that same internal analysis. The later public-note edits are documented above. This fixture preserves the complete original `capturedRun` and `capturedGuard`, including their rejection, alongside the current real `guard` result and a validation explanation. Its replay `run.status` is `completed` and its obsolete `failureCode` is removed to reflect successful offline revalidation; all other run fields are unchanged. A subsequent live weak-delivery retry exhausted ten turns without returning a case file and is not used as a fixture.
 
 Six live evaluations were invoked through the authorized wrapper, with at least one minute between runs. The first strong-delivery attempt copied a long prompt example and was rejected; that output remains a guard regression. The example was removed from the prompt rather than weakening disclosure checks. The final low-value and injection captures followed guidance to batch reads and avoid repeated source reads. No further evaluations were run.
 

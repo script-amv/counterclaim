@@ -1,4 +1,5 @@
 "use client";
+import { OutboundPreview } from './outbound-preview';
 import { submissionFailureReason } from '../paypal/error-details';
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -344,19 +345,14 @@ export function CaseWorkspace({
                   </p>
                   <p>
                     {action === "provide-evidence"
-                      ? "Your seller note and the evidence PDF containing these claims, timeline and selected source records."
+                      ? "Your seller note and the evidence PDF containing delivery facts from the selected shipment and tracking records."
                       : action === "make-offer"
                         ? `Your seller note and a ${money(file.recommendation.offer_amount)} refund offer. No evidence PDF is sent.`
                         : "Your seller note and acceptance of the claim. No evidence PDF is sent. A planned refund is not proof of an issued refund."}
                   </p>
-                  <h3>Selected records</h3>
-                  <ul>
-                    {file.evidence_draft.attach_records.map((r) => (
-                      <li key={r}>
-                        {sourceName(r)} <small>{r}</small>
-                      </li>
-                    ))}
-                  </ul>
+                  {action === "provide-evidence" && (version.outboundPacket
+                    ? <OutboundPreview packet={version.outboundPacket} />
+                    : <p className="notice">PDF content is unavailable until the source and privacy checks pass.</p>)}
                 </div>
                 <div className="approval-box">
                   <h3>{approved ? "Version approved" : "Approval required"}</h3>
@@ -436,8 +432,8 @@ export function CaseWorkspace({
                     <h3>PDF preview follows approval</h3>
                     <p>
                       The server generates and binds the exact PDF bytes to
-                      approval. First review the note, claims and selected
-                      records above. Then approve to inspect the PDF before
+                      approval. First review the checked PDF content and exclusions
+                      above. Then approve to inspect the PDF before
                       sending.
                     </p>
                   </div>
@@ -868,7 +864,7 @@ function Guard({
     </section>
   );
 }
-function Editor({
+export function Editor({
   file,
   version,
   disabled,
@@ -895,7 +891,7 @@ function Editor({
           {version.guard.accepted ? "Guard passed" : "Rejected file"}
         </span>
       </div>
-      <label htmlFor="seller-note">Seller note</label>
+      <label htmlFor="seller-note">Sent to PayPal and visible to the buyer</label>
       <textarea
         id="seller-note"
         value={draft.evidence_draft.seller_note}

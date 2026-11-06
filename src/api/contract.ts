@@ -1,6 +1,6 @@
 /** Public UI contract. Raw PayPal snapshots, approval payloads and credentials never appear here. */
 import { z } from 'zod';
-import { caseFileSchema, type CaseFile, type GuardResult, type SubmissionAttempt, type ToolTrace, type ReadSource } from '../agent/schema';
+import { caseFileSchema, type CaseFile, type GuardResult, type SubmissionAttempt, type ToolTrace, type ReadSource, type PrivacyFinding } from '../agent/schema';
 import type { publicDispute } from './privacy';
 export type { CaseFile, GuardResult, SubmissionAction, ReadSource, ToolTrace } from '../agent/schema';
 export type PublicDispute = ReturnType<typeof publicDispute>;
@@ -11,9 +11,11 @@ export interface CaseQueueRow {
 }
 export interface CasesResponse { cases: CaseQueueRow[] }
 export interface CaseFileVersionResponse {
+  outboundPacket?: import('../evidence/packet').OutboundPacket;
   id: string; runId: string; createdAt: string; caseFile: CaseFile | null; guard: GuardResult; sources: ReadSource[];
 }
 export interface RunResponse {
+  privacyFindings?: PrivacyFinding[];
   id: string; model: string; status: 'running' | 'completed' | 'rejected' | 'failed';
   startedAt: string; endedAt?: string; toolCalls: ToolTrace[]; tokens: number; tokensEstimated: boolean; cost?: number; failure?: string; provider?: string; turns?: number; failureCode?: import('../agent/provider').FailureCode;
 }

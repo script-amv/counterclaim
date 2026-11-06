@@ -13,19 +13,21 @@ export const caseFileSchema = z.object({
     confidence: z.object({ level: z.enum(['low', 'medium', 'high']), reason: text }).strict(),
     offer_amount: amountSchema.optional(),
   }).strict(),
-  evidence_draft: z.object({ seller_note: z.string().min(1).max(2000), attach_records: z.array(z.string().min(1).max(255)).max(100) }).strict(),
+  evidence_draft: z.object({ seller_note: z.string().min(1).max(2000).describe('Exact public message sent to PayPal and visible to the buyer. Address the recipient directly, politely and factually. Describe only supported carrier, delivery, signature, address-match and date evidence or the structured settlement offer. Never include internal costs, economics, win/loss analysis, reasoning, recommendations, confidence or internal record IDs.'), attach_records: z.array(z.string().min(1).max(255)).max(100) }).strict(),
 }).strict().superRefine((file, ctx) => {
   if ((file.recommendation.action === 'offer') !== !!file.recommendation.offer_amount) {
     ctx.addIssue({ code: 'custom', message: 'An offer requires an amount; other actions must omit it' });
   }
 });
 export type CaseFile = z.infer<typeof caseFileSchema>;
-export interface GuardResult { accepted: boolean; reasons: string[]; warnings?: string[] }
+export interface PrivacyFinding { path: string; rule: 'EMAIL' | 'PRIVATE_SOURCE_VALUE' }
+export interface GuardResult { privacyFindings?: PrivacyFinding[]; accepted: boolean; reasons: string[]; warnings?: string[] }
 export interface ReadSource { id: string; data: unknown }
 export interface ToolTrace { tool: string; arguments: Record<string, string>; result: string }
 export interface AgentRun {
   id: string; disputeId: string; model: string; status: 'running' | 'completed' | 'rejected' | 'failed';
   startedAt: string; endedAt?: string; toolCalls: ToolTrace[]; sources: ReadSource[];
+  privacyFindings?: PrivacyFinding[];
   tokens: number; tokensEstimated: boolean; cost?: number; failure?: string;
   httpStatus?: number; refusalKind?: 'rate_limit' | 'allowance' | 'other'; provider?: string; providers?: string[]; turns?: number; failureCode?: import('./provider').FailureCode;
 }

@@ -88,13 +88,13 @@ it('rejects historical names and short buyer names in seller edits', async () =>
 
 it('withholds a previously approved PDF when newly synced identity appears in its decoded text', async () => {
   const { version } = await investigate(runtime.store, scripted('strong-delivery'), d.dispute_id);
-  const file = draft('strong-delivery'); file.summary = 'Previously unknown buyer marker';
+  const file = draft('strong-delivery'); file.evidence_draft.seller_note = 'Previously unknown recipient marker';
   const edited = runtime.service.edit(d.dispute_id, file, runtime.service.latest(d.dispute_id).id);
   await runtime.service.approve(d.dispute_id, edited.id, runtime.store.snapshotFingerprint(d.dispute_id));
   const before = await pdf(request('GET'), context()); expect(before.status).toBe(200);
   const text = await decodedPacketText(new Uint8Array(await before.arrayBuffer()));
-  expect(text).toContain('Previously unknown buyer marker'); expect(text).not.toContain('Buyer Sensitive Name');
-  runtime.store.save({ ...d, buyer: { name: 'Previously unknown buyer marker' } });
+  expect(text).toContain('Previously unknown recipient marker'); expect(text).not.toContain('Buyer Sensitive Name');
+  runtime.store.save({ ...d, buyer: { name: 'Previously unknown recipient marker' } });
   expect((await pdf(request('GET'), context())).status).toBe(409);
   runtime.store.save({ ...d, buyer: {}, disputed_transactions: [] });
   expect((await pdf(request('GET'), context())).status).toBe(409);
@@ -103,7 +103,7 @@ it('withholds a previously approved PDF when newly synced identity appears in it
 it('withholds the PDF if new identity matches a cited source rather than the model prose', async () => {
   const { version } = await investigate(runtime.store, scripted('strong-delivery'), d.dispute_id);
   await runtime.service.approve(d.dispute_id, version!.id, runtime.store.snapshotFingerprint(d.dispute_id));
-  const before = await decodedPacketText(runtime.service.preview(d.dispute_id));
+  const before = await decodedPacketText(await runtime.service.preview(d.dispute_id));
   expect(before).toContain('DEMO CARRIER');
   runtime.store.save({ ...d, buyer: { name: 'DEMO CARRIER' } });
   expect((await pdf(request('GET'), context())).status).toBe(409);
@@ -116,9 +116,9 @@ it('enforces the global daily cap despite client header rotation', async () => {
 });
 it('rechecks private text after PDF accent normalization', async () => {
   await investigate(runtime.store, scripted('strong-delivery'), d.dispute_id);
-  const file = draft('strong-delivery'); file.summary = 'Jose Marker';
+  const file = draft('strong-delivery'); file.evidence_draft.seller_note = 'Jose Marker';
   const v = runtime.service.edit(d.dispute_id, file, runtime.service.latest(d.dispute_id).id); await runtime.service.approve(d.dispute_id, v.id, runtime.store.snapshotFingerprint(d.dispute_id));
-  expect(await decodedPacketText(runtime.service.preview(d.dispute_id))).toContain('Jose Marker');
+  expect(await decodedPacketText(await runtime.service.preview(d.dispute_id))).toContain('Jose Marker');
   runtime.store.save({ ...d, buyer: { name: 'José Marker' } });
   expect((await pdf(request('GET'), context())).status).toBe(409);
 });
@@ -155,4 +155,32 @@ it('requires the base version and returns the first edit on a stale edit conflic
   expect(response.status).toBe(409);
   expect((await response.json()).case.caseFileVersions.at(-1).id).toBe((await first.json()).version.id);
   expect(runtime.store.versions(d.dispute_id)).toHaveLength(2);
+});
+
+it('withholds a stored packet produced before the current outbound allowlist', async () => {
+  const { contentHash } = await import('../guard/submission');
+  const { version } = await investigate(runtime.store, scripted('strong-delivery'), d.dispute_id);
+  const approved = await runtime.service.approve(d.dispute_id, version!.id, runtime.store.snapshotFingerprint(d.dispute_id));
+  const older = structuredClone(approved);
+  older.id = crypto.randomUUID();
+  older.content.evidence!.pdfBase64 = Buffer.from('previous packet format containing private analysis').toString('base64');
+  older.contentHash = contentHash(older.content);
+  runtime.store.addApproval(older);
+  expect((await pdf(request('GET'), context())).status).toBe(409);
+});
+it('returns the exact checked packet blocks for review and the same approved PDF bytes', async () => {
+  const { version } = await investigate(runtime.store, scripted('strong-delivery'), d.dispute_id);
+  const file = draft('strong-delivery'); file.summary = 'The outcome is -$53.00.';
+  const edited = runtime.service.edit(d.dispute_id, file, version!.id);
+  const response = await detail(request('GET'), context());
+  const view = await response.json();
+  const packet = view.caseFileVersions.at(-1).outboundPacket;
+  expect(packet.excluded).toContainEqual(expect.objectContaining({ path: 'summary', text: file.summary }));
+  const approved = await runtime.service.approve(d.dispute_id, edited.id, runtime.store.snapshotFingerprint(d.dispute_id));
+  const rendered = await pdf(request('GET'), context());
+  const bytes = new Uint8Array(await rendered.arrayBuffer());
+  expect(Buffer.from(bytes).toString('base64')).toBe(approved.content.evidence!.pdfBase64);
+  const text = (await decodedPacketText(bytes)).replace(/\s+/g, ' ');
+  for (const block of packet.blocks) expect(text).toContain(block.text.replace(/\s+/g, ' '));
+  expect(text).not.toContain('outcome');
 });
