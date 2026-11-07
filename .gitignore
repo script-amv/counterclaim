@@ -18,3 +18,5 @@ spike/output/
 # Local browser verification artifacts
 test-results/
 playwright-report/
+.superpowers/
+.hallmark/
