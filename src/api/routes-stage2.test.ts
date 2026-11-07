@@ -86,6 +86,27 @@ it('rejects historical names and short buyer names in seller edits', async () =>
   }
 });
 
+it('previews a new chargeback packet after PayPal echoes the inquiry attachment name', async () => {
+  const first = await investigate(runtime.store, scripted('strong-delivery'), d.dispute_id);
+  const inquiry = await runtime.service.approve(d.dispute_id, first.version!.id, runtime.store.snapshotFingerprint(d.dispute_id));
+  const inquiryName = inquiry.content.evidence!.filename;
+  runtime.store.save({
+    ...d,
+    dispute_life_cycle_stage: 'CHARGEBACK',
+    evidences: [{
+      evidence_type: 'PROOF_OF_FULFILLMENT',
+      source: 'SUBMITTED_BY_SELLER',
+      documents: [{ name: inquiryName }],
+    }],
+  });
+  const second = await investigate(runtime.store, scripted('strong-delivery'), d.dispute_id);
+  const chargeback = await runtime.service.approve(d.dispute_id, second.version!.id, runtime.store.snapshotFingerprint(d.dispute_id));
+  const preview = await pdf(request('GET'), context());
+  expect(preview.status).toBe(200);
+  expect(Buffer.from(await preview.arrayBuffer()).toString('base64')).toBe(chargeback.content.evidence!.pdfBase64);
+  expect(chargeback.content.evidence!.filename).not.toBe(inquiryName);
+});
+
 it('withholds a previously approved PDF when newly synced identity appears in its decoded text', async () => {
   const { version } = await investigate(runtime.store, scripted('strong-delivery'), d.dispute_id);
   const file = draft('strong-delivery'); file.evidence_draft.seller_note = 'Previously unknown recipient marker';

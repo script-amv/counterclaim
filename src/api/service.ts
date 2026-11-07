@@ -48,7 +48,9 @@ export class CaseService {
     const content: SubmissionContent = { versionId, stage: dispute.dispute_life_cycle_stage ?? 'UNKNOWN', action: r.action === 'fight' ? 'provide-evidence' : r.action === 'offer' ? 'make-offer' : 'accept-claim', note: v.caseFile.evidence_draft.seller_note };
     if (r.action === 'offer') content.offer = r.offer_amount!;
     if (r.action === 'fight') {
-      const pdf = await generatePacket(v.caseFile, v.sources); const filename = 'counterclaim-demo.pdf';
+      const pdf = await generatePacket(v.caseFile, v.sources);
+      // PayPal echoes prior attachment names in dispute history.
+      const filename = `counterclaim-demo-${randomUUID()}.pdf`;
       const file = new File([new Uint8Array(pdf)], filename, { type: 'application/pdf' }); validateEvidenceFile(file);
       content.evidence = { filename, pdfBase64: Buffer.from(pdf).toString('base64'), input: evidenceInput(dispute.reason, v.caseFile, v.sources, filename) };
     }
