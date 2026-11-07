@@ -44,6 +44,8 @@ All four scenario replays were re-recorded November 6 from unedited passing real
 
 About 30 minutes after evidence, the sandbox adjudication control appeared. We chose `SELLER_FAVOR`; about three minutes later PayPal showed `RESOLVED_SELLER_FAVOUR`, and the app synced it as closed. **We selected the outcome with a sandbox control. It says nothing about real-world win rates or whether the evidence would win.**
 
+The November 7 demo recording used a separate sandbox case. PayPal accepted evidence at both stages, and Counterclaim synced closure after we selected seller favor in the sandbox. A duplicate attachment filename blocked the chargeback PDF preview. We fixed it with distinct names for new approvals and reviewed the regenerated, bound PDF before sending.
+
 ## What we learned
 
 The buyer's view is part of testing the response. A useful internal investigation contains costs, gaps and advice that must never become buyer-facing evidence. Human approval needs a clear outbound boundary and must bind the actual response bytes.
@@ -54,7 +56,7 @@ A guard can catch unsafe output and still reject valid figures or fields. Keepin
 
 ## What’s next
 
-Re-record the video on a fresh sandbox case, verify actual webhook delivery and the accept-claim metadata contract, and repeat live-model evaluations. The earlier capped evaluation did not establish two consecutive full passing runs; offline fixture validation does not replace that.
+Verify live webhook delivery and the accept-claim metadata contract, and repeat live-model evaluations. The earlier capped evaluation did not establish two consecutive full passing runs; offline fixture validation does not replace that.
 
 Before any production use, add trusted store/order linkage, stronger operator identity and seller isolation, retention and backup policies, and a reviewed path for manually reconciling unknown writes. Test with consenting sellers to measure handling time and decision quality. Production PayPal, live store integration and appeals remain outside this prototype.
 
@@ -66,5 +68,5 @@ Next.js, React, TypeScript, Node.js, SQLite (`node:sqlite`), PayPal sandbox REST
 
 - Hosted demo: [counterclaim.vercel.app](https://counterclaim.vercel.app)
 - Public source repository: [script-amv/counterclaim](https://github.com/script-amv/counterclaim)
-- Public English YouTube video, under three minutes: **[REPLACE WITH PUBLIC VIDEO URL]**
+- Public English YouTube video, under three minutes: [Counterclaim | PayPal AI Hackathon Demo](https://youtu.be/0hP7tKHKrkA)
 - License: [MIT](../LICENSE)

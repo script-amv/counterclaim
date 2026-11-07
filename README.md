@@ -6,7 +6,7 @@ Counterclaim helps a small online seller decide how to answer a PayPal dispute b
 
 **Repository:** [script-amv/counterclaim](https://github.com/script-amv/counterclaim).
 
-**Video:** [REPLACE WITH PUBLIC VIDEO URL] — placeholder.
+**Video:** [Counterclaim | PayPal AI Hackathon Demo](https://youtu.be/0hP7tKHKrkA).
 
 ## Try it as a judge
 
@@ -39,6 +39,12 @@ After buyer escalation, the case became `CHARGEBACK`, seller's turn, about six m
 The sandbox `adjudicate` control appeared about 30 minutes after evidence. We selected `SELLER_FAVOR`; about three minutes later the case showed `RESOLVED_SELLER_FAVOUR`. The app synced it and displayed it as closed. **We picked the sandbox outcome. This says nothing about real-world win rates.** These delays are observations from this case, not service guarantees.
 
 All four scenario replays were re-recorded November 6 from unedited passing real captures: strong → fight, weak → refund, low-value → offer, injection → fight without repeating the injection.
+
+## Fresh demo run — November 7, 2026 (UTC)
+
+The video uses sandbox case `PP-R-VGL-10197017`, a separate $10 item-not-received dispute. PayPal accepted fulfillment evidence at both `INQUIRY` and `CHARGEBACK`. The chargeback required a new investigation and approval. PayPal echoed the earlier attachment name, which tripped the PDF preview privacy check. New approvals use distinct attachment names. The chargeback response went out after the repaired preview returned the exact approved PDF.
+
+The sandbox adjudication control appeared about 29 minutes after the second submission. We selected `SELLER_FAVOR`, and Counterclaim synced `RESOLVED_SELLER_FAVOUR` as closed a few minutes later. The video labels the time cuts and the sandbox-selected outcome.
 
 ## Architecture
 
