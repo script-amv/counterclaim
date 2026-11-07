@@ -2,9 +2,9 @@
 
 Counterclaim helps a small online seller decide how to answer a PayPal dispute by assembling a case file with inspectable sources. It can recommend fighting, offering a settlement, or accepting the claim—including “Don’t fight this one” when the evidence is weak. The seller reviews the response, approves a specific version, inspects its evidence PDF where applicable, and separately chooses whether to send it to the PayPal sandbox.
 
-**Hosted demo:** [REPLACE WITH HOSTED DEMO URL] — placeholder.
+**Hosted demo:** [counterclaim.vercel.app](https://counterclaim.vercel.app).
 
-**Repository:** [REPLACE WITH PUBLIC REPOSITORY URL] — placeholder.
+**Repository:** [script-amv/counterclaim](https://github.com/script-amv/counterclaim).
 
 **Video:** [REPLACE WITH PUBLIC VIDEO URL] — placeholder.
 
@@ -163,7 +163,7 @@ To change the evidence type or packet, review and approve a new version and use 
 
 ## Tools used
 
-Next.js, React, TypeScript, Node `node:sqlite`, PayPal sandbox REST APIs, OpenRouter, AG Grid Community, Zod, `pdf-lib`, Vitest, Playwright and ESLint. OpenAI Codex assisted with submission documentation and source research. The UI bundles Fraunces and DM Sans under their included SIL Open Font License notices. Vercel hosts the read-only demo when deployed. The Render Blueprint remains available for persistent sandbox operation.
+Next.js, React, TypeScript, Node `node:sqlite`, PayPal sandbox REST APIs, OpenRouter, AG Grid Community, Zod, `pdf-lib`, Vitest, Playwright and ESLint. OpenAI Codex assisted with submission documentation and source research. The UI bundles Fraunces and DM Sans under their included SIL Open Font License notices. Vercel hosts the read-only demo. The Render Blueprint remains available for persistent sandbox operation.
 
 ## Limitations
 

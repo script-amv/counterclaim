@@ -22,7 +22,7 @@ Next.js and React serve the interface and API in a single Node process. SQLite s
 
 The agent runs through OpenRouter with four read-only tools: `get_dispute`, `get_order`, `list_records` and `read_record`. Tool results are untrusted data. Zod validates the structured case file; deterministic guards validate its claims and approval eligibility. The model has no PayPal write tool.
 
-A separate sandbox-only REST adapter handles OAuth, dispute sync, webhook verification and approved writes. `pdf-lib` builds the evidence packet. The supplied Render Blueprint uses one web service with a persistent SQLite disk and an HTTP cron job. Hosting is prepared, not claimed as deployed.
+A separate sandbox-only REST adapter handles OAuth, dispute sync, webhook verification and approved writes. `pdf-lib` builds the evidence packet. The supplied Render Blueprint uses one web service with a persistent SQLite disk and an HTTP cron job. The public demo runs on Vercel in read-only mode, without provider credentials or a database service.
 
 ## Challenges we ran into
 
@@ -64,7 +64,7 @@ Next.js, React, TypeScript, Node.js, SQLite (`node:sqlite`), PayPal sandbox REST
 
 ## Submission links to fill before publishing
 
-- Hosted demo: **[REPLACE WITH PUBLIC HOSTED URL]**
-- Public source repository: **[REPLACE WITH PUBLIC REPOSITORY URL]**
+- Hosted demo: [counterclaim.vercel.app](https://counterclaim.vercel.app)
+- Public source repository: [script-amv/counterclaim](https://github.com/script-amv/counterclaim)
 - Public English YouTube video, under three minutes: **[REPLACE WITH PUBLIC VIDEO URL]**
 - License: [MIT](../LICENSE)

@@ -23,4 +23,4 @@ The November 5–6, 2026 (UTC) app flow below is verified. This is a recording p
 - Keep sandbox, synthetic-data, recorded-run and forced-outcome disclosures readable. The reconstructed `PP-R-ZAT-10196609` timeline is separate from fresh footage.
 - Show sanitized records only. Hide credentials, operator code, account identities, emails, notifications and secret-bearing dashboards. Use your own narration and screen capture, with no music or unlicensed material.
 - Verify the exported runtime is below 2:45, including titles and credits, and count spoken words after any narration edits.
-- Demo: **[REPLACE WITH PUBLIC HOSTED URL] — placeholder**. Repository: **[REPLACE WITH PUBLIC REPOSITORY URL] — placeholder**. Video: **[REPLACE WITH PUBLIC VIDEO URL] — placeholder**. These materials do not publish anything.
+- Demo: [counterclaim.vercel.app](https://counterclaim.vercel.app). Repository: [script-amv/counterclaim](https://github.com/script-amv/counterclaim). Video: **[REPLACE WITH PUBLIC VIDEO URL] — placeholder**. These materials do not publish anything.
