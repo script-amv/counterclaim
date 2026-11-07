@@ -15,7 +15,7 @@ const Operator = createContext<{
   execute: (work: (code: string) => void) => void;
 }>({ execute: () => {} });
 export const useOperator = () => useContext(Operator);
-export function Shell({ children }: { children: ReactNode }) {
+export function Shell({ children, replayOnly }: { children: ReactNode; replayOnly: boolean }) {
   const path = usePathname();
   const [bannerCase, setBannerCase] = useState<{ path: string; replay: boolean } | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -53,7 +53,7 @@ export function Shell({ children }: { children: ReactNode }) {
             How it works
           </Link>
         </nav>
-        <button
+        {!replayOnly && <button
           className="access"
           onClick={() => {
             if (sessionStorage.getItem("counterclaim-operator")) {
@@ -63,7 +63,7 @@ export function Shell({ children }: { children: ReactNode }) {
           }}
         >
           {operator ? "Lock session" : "Operator access"}
-        </button>
+        </button>}
       </header>
       <div className="sandbox">
         <span className="sandbox-label">SANDBOX</span>

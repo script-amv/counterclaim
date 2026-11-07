@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import localFont from "next/font/local";
 import { Shell } from "@/ui/shell";
+import { isReplayOnly } from "@/cases/replay-only";
 import "./globals.css";
 const serif = localFont({
   src: "./fonts/fraunces.woff2",
@@ -24,7 +25,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${serif.variable} ${sans.variable}`}>
       <body>
-        <Shell>{children}</Shell>
+        <Shell replayOnly={isReplayOnly()}>{children}</Shell>
       </body>
     </html>
   );

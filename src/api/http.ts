@@ -3,10 +3,12 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { isIP } from 'node:net';
 import { z } from 'zod';
 import { ApiError } from './service';
+import { isReplayOnly } from '../cases/replay-only';
 import type { ApiErrorResponse } from './contract';
 
 export function json(value: unknown, status = 200) { return Response.json(value, { status, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } }); }
 export function requireOperator(request: Request) {
+  if (isReplayOnly()) throw new ApiError(403, 'Hosted replays are read-only');
   const code = process.env.OPERATOR_CODE;
   if (!code) throw new ApiError(503, 'Operator access is not configured');
   const expected = createHash('sha256').update(`Bearer ${code}`).digest();

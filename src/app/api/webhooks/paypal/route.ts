@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { getPayPal, getSync } from '@/cases/runtime';
 import { webhookSchema } from '@/paypal/schemas';
 
+import { isReplayOnly } from '@/cases/replay-only';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 const knownEvents = new Set(['CUSTOMER.DISPUTE.CREATED', 'CUSTOMER.DISPUTE.UPDATED', 'CUSTOMER.DISPUTE.RESOLVED']);
@@ -9,6 +11,7 @@ const resourceSchema = z.object({ dispute_id: z.string().regex(/^[A-Za-z0-9-]{1,
 const reply = (body: object, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 
 export async function POST(request: Request) {
+  if (isReplayOnly()) return reply({ error: 'Hosted replays are read-only' }, 403);
   let event: unknown;
   let rawEvent: string;
   try { rawEvent = await request.text(); event = JSON.parse(rawEvent); } catch { return reply({ error: 'Invalid webhook JSON' }, 400); }

@@ -101,6 +101,12 @@ The detailed operator commands and state-dependent checks are in [spike/RUNBOOK.
 
 See [PayPal’s sandbox testing guide](https://developer.paypal.com/disputes/test-go-live). The November 5–6 app run above verified import, investigation, approval, submissions, stage changes and closure in the sandbox. Webhook delivery remains unverified.
 
+### Vercel Hobby demo
+
+Import the repository as a Next.js project using Node.js 26 and the default build command. Set `COUNTERCLAIM_REPLAY_ONLY=1` for Preview and Production. Vercel's automatic `VERCEL=1` system variable also selects this mode when exposed. The deployment needs no secrets, database service or cron job.
+
+Each function instance seeds an in-memory SQLite database from the four recorded model runs and the reconstructed sandbox timeline. The app serves the queue, case files and citations. Operator writes, webhook processing and cron sync are disabled. Run the app locally with the sandbox settings above for the live flow.
+
 ### Render hosting
 
 [`render.yaml`](render.yaml) defines one paid web service, one persistent disk and one HTTP cron job. It has been checked against Render’s current [Blueprint reference](https://render.com/docs/blueprint-spec), [Node version selection](https://render.com/docs/node-version), [persistent disks](https://render.com/docs/disks) and [cron documentation](https://render.com/docs/cronjobs) on Nov 6, 2026. Both Node runtimes use the bounded `engines.node: 26.x`; remove conflicting host Node overrides. No deployment is implied.
@@ -157,7 +163,7 @@ To change the evidence type or packet, review and approve a new version and use 
 
 ## Tools used
 
-Next.js, React, TypeScript, Node `node:sqlite`, PayPal sandbox REST APIs, OpenRouter, AG Grid Community, Zod, `pdf-lib`, Vitest, Playwright and ESLint. OpenAI Codex assisted with submission documentation and source research. The UI bundles Fraunces and DM Sans under their included SIL Open Font License notices. Render is the supplied hosting target, not a claimed deployed integration.
+Next.js, React, TypeScript, Node `node:sqlite`, PayPal sandbox REST APIs, OpenRouter, AG Grid Community, Zod, `pdf-lib`, Vitest, Playwright and ESLint. OpenAI Codex assisted with submission documentation and source research. The UI bundles Fraunces and DM Sans under their included SIL Open Font License notices. Vercel hosts the read-only demo when deployed. The Render Blueprint remains available for persistent sandbox operation.
 
 ## Limitations
 
