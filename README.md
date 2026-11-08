@@ -6,7 +6,7 @@ Counterclaim helps a small online seller decide how to answer a PayPal dispute b
 
 **Repository:** [script-amv/counterclaim](https://github.com/script-amv/counterclaim).
 
-**Video:** [Counterclaim | PayPal AI Hackathon Demo](https://youtu.be/0hP7tKHKrkA).
+**Video:** [Counterclaim | PayPal AI Hackathon Demo](https://youtu.be/jIypyUdbXNU).
 
 ## Try it as a judge
 
