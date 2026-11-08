@@ -35,6 +35,15 @@ test("queue is an AG Grid, sorts and quick-filters", async ({ page }) => {
     "href", "/cases/REPLAY-weak-delivery",
   );
 });
+test("queue links navigate after the grid loads", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('a[href="/cases/REPLAY-weak-delivery"]').click({ timeout: 5000 });
+  await expect(page).toHaveURL(/\/cases\/REPLAY-weak-delivery$/);
+  await page.getByRole("link", { name: "Case queue", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Your case queue" })).toBeVisible();
+  await page.getByRole("link", { name: "How it works", exact: true }).click();
+  await expect(page).toHaveURL(/\/how-it-works$/);
+});
 test("citation opens the actual highlighted source beside its claim", async ({
   page,
 }) => {

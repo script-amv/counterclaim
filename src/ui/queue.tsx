@@ -31,6 +31,12 @@ const theme = themeQuartz.withParams({
   browserColorScheme: "light",
 });
 type Cell = ICellRendererParams<CaseQueueRow>;
+const defaultColumn: ColDef<CaseQueueRow> = {
+  sortable: true,
+  resizable: true,
+  flex: 1,
+  minWidth: 120,
+};
 export function Queue() {
   const router = useRouter();
   const gridReady = useRef(false);
@@ -253,7 +259,7 @@ export function Queue() {
                 theme={theme}
                 rowData={rows}
                 columnDefs={columns}
-                defaultColDef={{ sortable: true, resizable: true, flex: 1, minWidth: 120 }}
+                defaultColDef={defaultColumn}
                 quickFilterText={filter}
                 rowHeight={94}
                 headerHeight={44}
